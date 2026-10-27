@@ -1,0 +1,30 @@
+name: croi
+description: Tipare de croitorie generate pe măsurile tale.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+    - assets/logo/
+
+# shared_preferences_android 2.5.0 (oct. 2026) dă eroare la pornire în
+# versiunea release (NoSuchMethodError prin JNI). Rămânem pe 2.4.x.
+dependency_overrides:
+  shared_preferences_android: 2.4.28
