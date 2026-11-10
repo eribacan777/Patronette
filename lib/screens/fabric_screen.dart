@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../fabric/fabric_painter.dart';
 import '../fabric/fabric_plan.dart';
 import '../format.dart';
+import '../theme.dart';
 
 /// Desenul cu așezarea pieselor pe material, de folosit la croit.
 class FabricScreen extends StatelessWidget {
@@ -37,7 +38,7 @@ class FabricScreen extends StatelessWidget {
                 maxScale: 8,
                 child: CustomPaint(
                   size: Size.infinite,
-                  painter: FabricPainter(plan: plan, ink: Colors.brown.shade700),
+                  painter: FabricPainter(plan: plan, ink: PatronetteColors.ink),
                 ),
               ),
             ),

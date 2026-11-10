@@ -16,6 +16,9 @@ import '../models/pattern.dart';
 import '../models/profile.dart';
 import 'tiles.dart';
 
+/// Rozul Patronette, pentru harta paginilor.
+const _rose = PdfColor.fromInt(0xFFA95560);
+
 /// Desenează tiparul într-un PDF (implementarea `PatternCanvas` pentru PDF).
 class PdfPatternCanvas implements PatternCanvas {
   PdfPatternCanvas(this.g, this.regular, this.bold, this.map, this.fix);
@@ -335,7 +338,7 @@ pw.Widget _coverPage(
               final b = grid.tile(r, c);
               final used = grid.isUsed(r, c);
               final p0 = map(Pt(b.minX, b.maxY));
-              g.setStrokeColor(used ? PdfColors.blue700 : PdfColors.grey400);
+              g.setStrokeColor(used ? _rose : PdfColors.grey400);
               g.setLineWidth(used ? 0.8 : 0.4);
               if (!used) g.setLineDashPattern([2, 2]);
               g.drawRect(p0.x, p0.y, b.width * k, b.height * k);
@@ -343,7 +346,7 @@ pw.Widget _coverPage(
               if (!used) g.setLineDashPattern([]);
               if (used) {
                 final center = map(Pt(b.minX + b.width / 2, b.minY + b.height / 2));
-                g.setFillColor(PdfColors.blue700);
+                g.setFillColor(_rose);
                 g.drawString(bold, 10, TileGrid.label(r, c), center.x - 7, center.y - 4);
               }
             }

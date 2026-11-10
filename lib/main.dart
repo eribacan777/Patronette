@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'data/profile_store.dart';
 import 'screens/home_screen.dart';
+import 'theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,19 +19,11 @@ class PatronetteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xFFB5523B); // cărămiziu, ca o cretă de croitor
     return MaterialApp(
       title: 'Patronette',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: seed),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
+      theme: patronetteTheme(Brightness.light),
+      darkTheme: patronetteTheme(Brightness.dark),
       home: HomeScreen(store: store),
     );
   }

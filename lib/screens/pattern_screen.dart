@@ -10,6 +10,7 @@ import '../format.dart';
 import '../garments/garment.dart';
 import '../geometry.dart';
 import '../models/profile.dart';
+import '../theme.dart';
 import 'fabric_screen.dart';
 
 /// Tiparul generat: previzualizare, setări și export PDF.
@@ -82,7 +83,7 @@ class _PatternScreenState extends State<PatternScreen> {
           size: Size.infinite,
           painter: LayoutPainter(
             layout: layout,
-            color: Colors.black87,
+            color: PatronetteColors.ink,
             footer: '${widget.garment.name} · ${widget.profile.name}',
           ),
         ),
