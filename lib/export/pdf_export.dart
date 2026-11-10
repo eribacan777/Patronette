@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../drawing/layout.dart';
 import '../drawing/pattern_canvas.dart';
+import '../fabric/fabric_plan.dart';
 import '../format.dart';
 import '../garments/garment.dart';
 import '../geometry.dart';
@@ -98,6 +99,7 @@ Future<Uint8List> buildPatternPdf({
   required Map<String, double> options,
   required double seam,
   required double hem,
+  double fabricWidth = 150,
 }) async {
   final fonts = await _loadFonts();
   String t(String s) => fonts.unicode ? s : stripDiacritics(s);
@@ -119,7 +121,8 @@ Future<Uint8List> buildPatternPdf({
     margin: const pw.EdgeInsets.all(1.5 * cm),
     theme: pw.ThemeData.withFont(base: fonts.regular, bold: fonts.bold),
     build: (ctx) => _coverPage(ctx, t, fonts, garment, draft, profile, options,
-        seam, hem, layout, grid),
+        seam, hem, layout, grid,
+        FabricPlan.compute(draft.pieces, fabricWidth: fabricWidth, seam: seam, hem: hem)),
   ));
 
   for (var r = 0; r < grid.rows; r++) {
@@ -224,6 +227,7 @@ pw.Widget _coverPage(
   double hem,
   PatternLayout layout,
   TileGrid grid,
+  FabricPlan fabric,
 ) {
   const cm = PdfPageFormat.cm;
   final heading = pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold);
@@ -237,6 +241,8 @@ pw.Widget _coverPage(
     for (final o in garment.options)
       '${o.label}: ${o.choices?[garment.option(options, o.key)] ?? '${fmtCm(garment.option(options, o.key))} cm'}',
     'Rezervă de cusătură: ${fmtCm(seam)} cm · tiv: ${fmtCm(hem)} cm',
+    'Material: ${fmtCm(fabric.metersToBuy)} m, lat de ${fmtCm(fabric.fabricWidth)} cm'
+        '${fabric.fits ? '' : ' (unele piese nu încap pe materialul pliat)'}',
   ];
   final steps = [
     'Printează la „Dimensiune reală” (100%), fără „Potrivire în pagină”.',

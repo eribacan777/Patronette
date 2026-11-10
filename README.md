@@ -11,7 +11,10 @@ corpului și le exportă ca PDF la scară reală, de printat pe coli A4.
    tricou, corsaj de bază.
 4. **Previzualizare** – tiparul se redesenează imediat când schimbi
    lungimea, lărgimea sau rezervele de cusătură.
-5. **Export PDF** – o pagină cu instrucțiuni, pătrat de test de 5 × 5 cm și
+5. **Calculator de material** – spune câți metri trebuie cumpărați la
+   lățimea aleasă (110, 140 sau 150 cm) și arată așezarea pieselor pe
+   materialul pliat.
+6. **Export PDF** – o pagină cu instrucțiuni, pătrat de test de 5 × 5 cm și
    harta paginilor, apoi tiparul 1:1 împărțit pe A4, cu romburi de potrivire.
 
 ## Cum rulezi aplicația
@@ -39,6 +42,7 @@ flutter run -d chrome # în browser, pentru o probă rapidă
 | `lib/garments/` | Câte un fișier pentru fiecare model, cu formulele lui |
 | `lib/drawing/` | Așezarea pieselor pe planșă și desenarea lor |
 | `lib/export/` | Împărțirea pe pagini A4 și generarea PDF-ului |
+| `lib/fabric/` | Calculatorul de material și desenul cu așezarea pe material |
 | `lib/screens/` | Ecranele aplicației |
 | `lib/data/profile_store.dart` | Salvarea profilurilor pe telefon |
 | `test/` | Teste automate |
@@ -61,6 +65,16 @@ Fiecare margine a unei piese are un tip: cusătură, tiv sau pliu
 exterior cu rezerva ei (pliul nu primește rezervă) și intersectând
 marginile vecine (`offsetOutline` din `geometry.dart`).
 
+### Calculatorul de material
+
+Materialul se consideră pliat în două pe lung. Piesele „pe pliu” se
+lipesc de îndoitură, iar celelalte se taie prin ambele straturi, deci o
+tăietură dă două piese în oglindă. Piesele stau cu firul drept pe lungimea
+materialului și coboară, ca la Tetris, până ating piesele de dedesubt,
+după forma lor reală (`lib/fabric/fabric_plan.dart`). Se încearcă mai
+multe ordini de așezare și se păstrează cea mai scurtă. La rezultat se
+adaugă 10 cm pentru intrarea la spălat.
+
 ### Ce verifică testele
 
 - rezerva de cusătură mută corect fiecare latură, inclusiv 0 cm pe pliu;
@@ -68,7 +82,10 @@ marginile vecine (`offsetOutline` din `geometry.dart`).
 - la fusta dreaptă, talia minus pense este sfertul de talie;
 - capul mânecii are aceeași lungime ca răscroiala;
 - toate modelele dau contururi corecte și la măsuri extreme;
-- fiecare model se exportă ca PDF (fișierele ajung în `build/pdf_test/`).
+- fiecare model se exportă ca PDF (fișierele ajung în `build/pdf_test/`);
+- calculatorul de material taie fiecare piesă de câte ori trebuie, fără
+  suprapuneri, cu cantități realiste;
+- ecranul tiparului arată materialul necesar și deschide desenul de așezare.
 
 ## Limite cunoscute
 

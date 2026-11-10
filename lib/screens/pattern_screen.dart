@@ -5,10 +5,12 @@ import '../drawing/layout.dart';
 import '../drawing/layout_painter.dart';
 import '../export/pdf_export.dart';
 import '../export/tiles.dart';
+import '../fabric/fabric_plan.dart';
 import '../format.dart';
 import '../garments/garment.dart';
 import '../geometry.dart';
 import '../models/profile.dart';
+import 'fabric_screen.dart';
 
 /// Tiparul generat: previzualizare, setări și export PDF.
 class PatternScreen extends StatefulWidget {
@@ -25,6 +27,7 @@ class _PatternScreenState extends State<PatternScreen> {
   late final Map<String, double> _options = widget.garment.defaultOptions;
   double _seam = 1;
   double _hem = 2;
+  double _fabricWidth = 150;
   bool _busy = false;
 
   String get _fileName =>
@@ -41,6 +44,7 @@ class _PatternScreenState extends State<PatternScreen> {
         options: _options,
         seam: _seam,
         hem: _hem,
+        fabricWidth: _fabricWidth,
       );
       if (print) {
         await Printing.layoutPdf(onLayout: (_) async => bytes, name: _fileName);
@@ -65,6 +69,8 @@ class _PatternScreenState extends State<PatternScreen> {
     // Corsajul se oprește în talie: nu are tiv, deci nici glisor de tiv.
     final hasHem = draft.pieces
         .any((p) => p.outline.any((s) => s.kind == EdgeKind.hem));
+    final fabric = FabricPlan.compute(draft.pieces,
+        fabricWidth: _fabricWidth, seam: _seam, hem: _hem);
 
     final preview = Card(
       margin: const EdgeInsets.all(12),
@@ -112,6 +118,8 @@ class _PatternScreenState extends State<PatternScreen> {
         if (hasHem)
           _slider('Rezervă de tiv', _hem, 0, 4, 0.5,
               (v) => setState(() => _hem = v)),
+        const Divider(),
+        _fabricSection(fabric),
       ],
     );
 
@@ -165,6 +173,68 @@ class _PatternScreenState extends State<PatternScreen> {
           ]),
         ),
       ),
+    );
+  }
+
+  /// Calculatorul de material: lățimea materialului și câți metri trebuie.
+  Widget _fabricSection(FabricPlan fabric) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 8),
+          child: Text('Material necesar', style: theme.textTheme.titleMedium),
+        ),
+        const Text('Lățimea materialului'),
+        const SizedBox(height: 8),
+        SegmentedButton<double>(
+          segments: const [
+            ButtonSegment(value: 110, label: Text('110 cm')),
+            ButtonSegment(value: 140, label: Text('140 cm')),
+            ButtonSegment(value: 150, label: Text('150 cm')),
+          ],
+          selected: {_fabricWidth},
+          onSelectionChanged: (s) => setState(() => _fabricWidth = s.first),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          color: fabric.fits
+              ? theme.colorScheme.secondaryContainer
+              : theme.colorScheme.errorContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Cumpără ${fmtCm(fabric.metersToBuy)} m',
+                    style: theme.textTheme.headlineSmall),
+                const SizedBox(height: 4),
+                Text('Piesele ocupă ${fmtCm(fabric.length.roundToDouble())} cm '
+                    'din lungime; am adăugat ${fmtCm(FabricPlan.extra)} cm pentru '
+                    'intrarea la spălat.'),
+                if (!fabric.fits) ...[
+                  const SizedBox(height: 8),
+                  Text('Nu încape pe materialul pliat: '
+                      '${fabric.tooWide.join(', ')}. Alege un material mai lat '
+                      'sau taie piesa din material desfăcut.'),
+                ],
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => FabricScreen(
+                          plan: fabric, garmentName: widget.garment.name),
+                    )),
+                    icon: const Icon(Icons.grid_view),
+                    label: const Text('Vezi așezarea pe material'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
