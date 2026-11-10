@@ -87,6 +87,7 @@ class BasicBodice extends Garment {
       return PatternPiece(
         name: front ? 'Corsaj față' : 'Corsaj spate',
         cutInfo: front ? 'Taie 1 pe pliu' : 'Taie 2 (în oglindă)',
+        copies: front ? 1 : 2,
         outline: [
           neckSeg,
           LineSeg(Pt(neckWidth, 0), shoulderPoint),

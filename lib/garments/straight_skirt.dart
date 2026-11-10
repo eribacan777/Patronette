@@ -117,6 +117,7 @@ class StraightSkirt extends Garment {
     return PatternPiece(
       name: front ? 'Față' : 'Spate',
       cutInfo: front ? 'Taie 1 pe pliu' : 'Taie 2 (în oglindă)',
+      copies: front ? 1 : 2,
       outline: outline,
       markings: darts,
       grainFrom: Pt(hipQuarter * 0.2, hipDepth + 4),

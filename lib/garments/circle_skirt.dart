@@ -75,6 +75,7 @@ class CircleSkirt extends Garment {
     final piece = PatternPiece(
       name: 'Fustă (față și spate)',
       cutInfo: 'Taie 2 pe pliu',
+      copies: 2,
       outline: outline,
       grainFrom: Pt(2.5, r + 4),
       grainTo: Pt(2.5, bigR - 6),

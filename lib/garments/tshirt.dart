@@ -164,6 +164,7 @@ class TShirt extends Garment {
     final piece = PatternPiece(
       name: 'Mânecă',
       cutInfo: 'Taie 2 pe pliu',
+      copies: 2,
       outline: [
         capSeg,
         LineSeg(Pt(halfWidth, capHeight), Pt(hemX, sleeveLength)),

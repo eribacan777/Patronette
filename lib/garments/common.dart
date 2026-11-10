@@ -35,6 +35,7 @@ PatternPiece foldedStrip({
     grainFrom: Pt(length * 0.55, width * 0.75),
     grainTo: Pt(length * 0.9, width * 0.75),
     labelAt: const Pt(1.5, 0.5),
+    canRotate: true,
   );
 }
 

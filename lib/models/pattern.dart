@@ -10,6 +10,8 @@ class PatternPiece {
     required this.grainTo,
     required this.labelAt,
     this.markings = const [],
+    this.copies = 1,
+    this.canRotate = false,
   });
 
   final String name;
@@ -30,6 +32,13 @@ class PatternPiece {
   /// Colțul din stânga sus al textului scris pe piesă.
   final Pt labelAt;
 
+  /// Câte bucăți din piesa asta se taie din material.
+  final int copies;
+
+  /// true = piesa se poate întoarce pe material (benzi, cordoane);
+  /// celelalte stau cu firul drept pe lungimea materialului.
+  final bool canRotate;
+
   List<Pt> get seamLine => flattenOutline(outline);
 
   List<Pt> cutLine({required double seam, required double hem}) {
@@ -46,6 +55,8 @@ class PatternPiece {
 
   Iterable<Segment> get foldEdges =>
       outline.where((s) => s.kind == EdgeKind.fold);
+
+  bool get onFold => foldEdges.isNotEmpty;
 }
 
 /// Rezultatul generării: piesele unui model, plus observații pentru utilizator.
