@@ -131,7 +131,8 @@ class _PatternScreenState extends State<PatternScreen> {
           preferredSize: const Size.fromHeight(20),
           child: Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text('pe măsurile pentru ${widget.profile.name}'),
+            child: Text('pe măsurile pentru ${widget.profile.name}',
+                style: const TextStyle(color: Colors.white70)),
           ),
         ),
       ),
@@ -185,7 +186,9 @@ class _PatternScreenState extends State<PatternScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 8, bottom: 8),
-          child: Text('Material necesar', style: theme.textTheme.titleMedium),
+          child: Text('Material necesar',
+              style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
         ),
         const Text('Lățimea materialului'),
         const SizedBox(height: 8),

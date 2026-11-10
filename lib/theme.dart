@@ -13,6 +13,25 @@ abstract final class PatronetteColors {
   static const threadLight = Color(0xFFCFE5E2);
   static const paper = Color(0xFFFCF6F3); // hârtia roz-crem
   static const ink = Color(0xFF3D2B26); // contururile maro-calde
+  static const lilac = Color(0xFF7A5C8E); // nasturii mov de pe fundal
+  static const lilacLight = Color(0xFFE6DAEE);
+}
+
+/// O pereche de culori (închisă + deschisă) pentru elemente care trebuie să
+/// se deosebească între ele: modelele de haine, profilurile.
+class Accent {
+  const Accent(this.strong, this.light);
+  final Color strong;
+  final Color light;
+
+  static const all = [
+    Accent(PatronetteColors.rose, PatronetteColors.roseLight),
+    Accent(PatronetteColors.thread, PatronetteColors.threadLight),
+    Accent(PatronetteColors.honey, PatronetteColors.honeyLight),
+    Accent(PatronetteColors.lilac, PatronetteColors.lilacLight),
+  ];
+
+  static Accent of(int i) => all[i % all.length];
 }
 
 ThemeData patronetteTheme(Brightness brightness) {
@@ -74,9 +93,10 @@ ThemeData patronetteTheme(Brightness brightness) {
     colorScheme: scheme,
     useMaterial3: true,
     scaffoldBackgroundColor: scheme.surface,
+    // Bara de sus în rozul sărăfanului, ca să se vadă de la prima privire.
     appBarTheme: AppBarTheme(
-      backgroundColor: scheme.surface,
-      foregroundColor: scheme.onSurface,
+      backgroundColor: dark ? const Color(0xFF6E3540) : PatronetteColors.rose,
+      foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
     ),
     cardTheme: CardThemeData(
