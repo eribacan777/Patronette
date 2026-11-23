@@ -7,12 +7,17 @@ import '../widgets/measure_figure.dart';
 
 /// Formularul în care se introduc numele și măsurile unei persoane.
 class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({super.key, required this.store, this.profile});
+  const ProfileEditScreen(
+      {super.key, required this.store, this.profile, this.neededKeys = const {}});
 
   final ProfileStore store;
 
   /// null = profil nou.
   final Profile? profile;
+
+  /// Măsurile care trebuie completate acum (de exemplu, cele cerute de
+  /// modelul ales). Celelalte se pot lăsa goale.
+  final Set<String> neededKeys;
 
   @override
   State<ProfileEditScreen> createState() => _ProfileEditScreenState();
@@ -52,10 +57,20 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   static double? _parse(String s) =>
       double.tryParse(s.trim().replaceAll(',', '.'));
 
+  bool _saving = false;
+
+  /// Prima măsură necesară, în ordinea din formular: primește cursorul.
+  late final String? _firstNeeded = kMeasurements
+      .map((d) => d.key)
+      .where(widget.neededKeys.contains)
+      .firstOrNull;
+
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    final values = {
-      for (final e in _fields.entries) e.key: _parse(e.value.text)!,
+    if (_saving || !_formKey.currentState!.validate()) return;
+    // Câmpurile goale nu se salvează: profilul are doar măsurile luate.
+    final values = <String, double>{
+      for (final e in _fields.entries)
+        if (_parse(e.value.text) case final v?) e.key: v,
     };
     final profile = widget.profile?.copyWith(
           name: _name.text.trim(),
@@ -66,8 +81,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           name: _name.text.trim(),
           values: values,
         );
-    await widget.store.save(profile);
-    if (mounted) Navigator.of(context).pop();
+    setState(() => _saving = true);
+    try {
+      await widget.store.save(profile);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profilul nu a putut fi salvat: $e')));
+    }
   }
 
   void _showGuide(MeasurementDef def) {
@@ -134,7 +157,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 child: Text(
                   'Măsoară peste lenjerie, cu un centimetru de croitorie ținut '
                   'paralel cu podeaua, fără să strângi. Apasă pe ⓘ ca să vezi '
-                  'cum se ia fiecare măsură.',
+                  'cum se ia fiecare măsură. Poți lăsa goale măsurile de care '
+                  'nu ai nevoie acum: aplicația ți le cere când alegi un model '
+                  'care le folosește.',
                 ),
               ),
             ),
@@ -144,7 +169,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _save,
+        onPressed: _saving ? null : _save,
         icon: const Icon(Icons.check),
         label: const Text('Salvează'),
       ),
@@ -154,14 +179,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget _measurementField(MeasurementDef d) {
     final value = _parse(_fields[d.key]!.text);
     final unusual = value != null && (value < d.min || value > d.max);
+    final needed = widget.neededKeys.contains(d.key);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
         controller: _fields[d.key],
+        autofocus: needed && d.key == _firstNeeded,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         onChanged: (_) => setState(() {}),
         decoration: InputDecoration(
-          labelText: d.label,
+          labelText: needed ? '${d.label} (necesară)' : d.label,
           hintText: 'ex. ${d.example.toStringAsFixed(0)}',
           suffixText: 'cm',
           border: const OutlineInputBorder(),
@@ -177,7 +204,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           ),
         ),
         validator: (v) {
-          final x = _parse(v ?? '');
+          final text = (v ?? '').trim();
+          if (text.isEmpty) {
+            return needed ? 'Măsura aceasta trebuie completată' : null;
+          }
+          final x = _parse(text);
           if (x == null) return 'Introdu un număr';
           if (x <= 0 || x > 250) return 'Valoarea nu pare corectă';
           return null;

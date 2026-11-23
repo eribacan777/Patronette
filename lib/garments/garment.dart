@@ -46,7 +46,13 @@ abstract class Garment {
   Map<String, double> get defaultOptions =>
       {for (final o in options) o.key: o.defaultValue};
 
-  /// O măsură din profil; dacă lipsește, folosim valoarea tipică.
+  /// Măsurile de care are nevoie modelul și care lipsesc din profil.
+  /// Un tipar adevărat (ecran, PDF) se face doar când lista e goală.
+  List<String> missingMeasurements(Measurements m) =>
+      [for (final k in measurementKeys) if (m[k] == null) k];
+
+  /// O măsură din profil. Dacă lipsește, folosim valoarea tipică, dar doar
+  /// pentru miniaturi: înainte de tipar se verifică [missingMeasurements].
   double measure(Measurements m, String key) =>
       m[key] ?? measurementDef(key).example;
 

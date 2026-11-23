@@ -20,6 +20,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Future<void> _delete(BuildContext context, Profile profile) async {
+    final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -35,7 +36,13 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-    if (ok == true) await store.delete(profile.id);
+    if (ok != true) return;
+    try {
+      await store.delete(profile.id);
+    } catch (e) {
+      messenger.showSnackBar(
+          SnackBar(content: Text('Profilul nu a putut fi șters: $e')));
+    }
   }
 
   @override
@@ -70,21 +77,17 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           final profiles = store.profiles;
-          if (store.loadError != null && profiles.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                    'Nu am putut citi profilurile salvate:\n${store.loadError}'),
-              ),
-            );
-          }
+          final error = store.loadError == null
+              ? null
+              : _LoadErrorCard(
+                  message: store.loadError!, canSave: store.canSave);
           if (profiles.isEmpty) {
-            return _Welcome(onStart: () => _edit(context, null));
+            return _Welcome(onStart: () => _edit(context, null), error: error);
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             children: [
+              if (error != null) error,
               const _Banner(),
               const SizedBox(height: 16),
               Padding(
@@ -173,10 +176,40 @@ class _Banner extends StatelessWidget {
   }
 }
 
+/// Avertizarea afișată când profilurile salvate nu au putut fi citite.
+class _LoadErrorCard extends StatelessWidget {
+  const _LoadErrorCard({required this.message, required this.canSave});
+
+  final String message;
+  final bool canSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.errorContainer,
+      margin: const EdgeInsets.only(bottom: 16),
+      child: ListTile(
+        leading: Icon(Icons.warning_amber, color: scheme.onErrorContainer),
+        title: Text(message,
+            style: TextStyle(color: scheme.onErrorContainer)),
+        subtitle: Text(
+            canSave
+                ? 'Datele vechi au fost păstrate separat pe telefon și nu se '
+                    'pierd când adaugi profiluri noi.'
+                : 'Ca să nu se piardă datele vechi, nu salvez nimic până nu '
+                    'repornești aplicația.',
+            style: TextStyle(color: scheme.onErrorContainer)),
+      ),
+    );
+  }
+}
+
 class _Welcome extends StatelessWidget {
-  const _Welcome({required this.onStart});
+  const _Welcome({required this.onStart, this.error});
 
   final VoidCallback onStart;
+  final Widget? error;
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +228,7 @@ class _Welcome extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 480),
           child: Column(
             children: [
+              if (error != null) error!,
               Image.asset('assets/logo/patronette.png', width: 160),
               const SizedBox(height: 16),
               Text('Tipare pe măsurile tale',

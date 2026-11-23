@@ -85,7 +85,11 @@ adaugă 10 cm pentru intrarea la spălat.
 - fiecare model se exportă ca PDF (fișierele ajung în `build/pdf_test/`);
 - calculatorul de material taie fiecare piesă de câte ori trebuie, fără
   suprapuneri, cu cantități realiste;
-- ecranul tiparului arată materialul necesar și deschide desenul de așezare.
+- ecranul tiparului arată materialul necesar și deschide desenul de așezare;
+- profilurile salvate care nu pot fi citite sunt puse deoparte și nu se
+  pierd la salvarea unui profil nou;
+- un model cu măsuri lipsă le cere înainte de tipar, iar PDF-ul nu se face
+  cu măsuri inventate.
 
 ## Limite cunoscute
 

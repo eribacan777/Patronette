@@ -104,6 +104,11 @@ Future<Uint8List> buildPatternPdf({
   required double hem,
   double fabricWidth = 150,
 }) async {
+  final missing = garment.missingMeasurements(profile.values);
+  if (missing.isNotEmpty) {
+    throw ArgumentError('Lipsesc măsurile: '
+        '${missing.map((k) => measurementDef(k).label).join(', ')}');
+  }
   final fonts = await _loadFonts();
   String t(String s) => fonts.unicode ? s : stripDiacritics(s);
 

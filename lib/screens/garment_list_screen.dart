@@ -5,9 +5,11 @@ import '../drawing/layout.dart';
 import '../drawing/layout_painter.dart';
 import '../garments/catalog.dart';
 import '../garments/garment.dart';
+import '../models/measurements.dart';
 import '../models/profile.dart';
 import '../theme.dart';
 import 'pattern_screen.dart';
+import 'profile_edit_screen.dart';
 
 /// Lista modelelor; fiecare are o miniatură desenată chiar pe măsurile profilului.
 class GarmentListScreen extends StatelessWidget {
@@ -33,7 +35,10 @@ class GarmentListScreen extends StatelessWidget {
             children: [
               for (var i = 0; i < kGarments.length; i++)
                 _GarmentCard(
-                    garment: kGarments[i], profile: profile, accent: Accent.of(i)),
+                    store: store,
+                    garment: kGarments[i],
+                    profile: profile,
+                    accent: Accent.of(i)),
             ],
           ),
         );
@@ -44,8 +49,12 @@ class GarmentListScreen extends StatelessWidget {
 
 class _GarmentCard extends StatelessWidget {
   const _GarmentCard(
-      {required this.garment, required this.profile, required this.accent});
+      {required this.store,
+      required this.garment,
+      required this.profile,
+      required this.accent});
 
+  final ProfileStore store;
   final Garment garment;
   final Profile profile;
   final Accent accent;
@@ -53,6 +62,9 @@ class _GarmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final missing = garment.missingMeasurements(profile.values);
+    // Miniatura se desenează și când lipsesc măsuri (cu valori tipice),
+    // dar tiparul adevărat se deschide doar după ce sunt completate.
     final draft = garment.draft(profile.values, garment.defaultOptions);
     final layout = PatternLayout.build(draft.pieces, seam: 0, hem: 0);
     final dark = theme.brightness == Brightness.dark;
@@ -64,9 +76,11 @@ class _GarmentCard extends StatelessWidget {
         side: BorderSide(color: accent.strong.withAlpha(90)),
       ),
       child: InkWell(
-        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => PatternScreen(garment: garment, profile: profile),
-        )),
+        onTap: () => missing.isEmpty
+            ? Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => PatternScreen(garment: garment, profile: profile),
+              ))
+            : _askForMissing(context, missing),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -99,16 +113,20 @@ class _GarmentCard extends StatelessWidget {
                             fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
                     Text(garment.description),
-                    const SizedBox(height: 4),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Container(
                       padding:
                           const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                       decoration: BoxDecoration(
-                        color: accent.strong,
+                        color: missing.isEmpty
+                            ? accent.strong
+                            : theme.colorScheme.error,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text('${draft.pieces.length} piese',
+                      child: Text(
+                          missing.isEmpty
+                              ? '${draft.pieces.length} piese'
+                              : 'Lipsesc: ${_labels(missing)}',
                           style: theme.textTheme.labelSmall
                               ?.copyWith(color: Colors.white)),
                     ),
@@ -121,5 +139,35 @@ class _GarmentCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _labels(List<String> keys) =>
+      keys.map((k) => measurementDef(k).label.toLowerCase()).join(', ');
+
+  Future<void> _askForMissing(BuildContext context, List<String> missing) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Lipsesc măsuri pentru ${garment.name.toLowerCase()}'),
+        content: Text('Ca tiparul să fie făcut pe măsurile pentru '
+            '${profile.name}, completează: ${_labels(missing)}.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Renunță')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Completează')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ProfileEditScreen(
+        store: store,
+        profile: profile,
+        neededKeys: missing.toSet(),
+      ),
+    ));
   }
 }
