@@ -10,6 +10,8 @@ from app.config import Settings
         "postgresql://u:p@ep-x.eu-central-1.aws.neon.tech/neondb?sslmode=require",
         "postgres://u:p@ep-x.eu-central-1.aws.neon.tech/neondb?sslmode=require",
         "  postgresql+psycopg://u:p@ep-x.eu-central-1.aws.neon.tech/neondb?sslmode=require ",
+        "psql 'postgresql://u:p@ep-x.eu-central-1.aws.neon.tech/neondb?sslmode=require'",
+        '"postgresql://u:p@ep-x.eu-central-1.aws.neon.tech/neondb?sslmode=require"',
     ],
 )
 def test_adresa_din_neon_se_poate_lipi_direct(given):

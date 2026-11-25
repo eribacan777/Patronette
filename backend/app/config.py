@@ -42,6 +42,10 @@ class Settings(BaseSettings):
         """Neon și alte servicii dau adresa ca `postgresql://...` sau
         `postgres://...`; SQLAlchemy trebuie să știe că folosim psycopg 3."""
         v = v.strip()
+        # Neon poate afișa adresa ca o comandă: psql 'postgresql://...'
+        if v.startswith("psql"):
+            v = v[4:].strip()
+        v = v.strip("'\"").strip()
         for prefix in ("postgres://", "postgresql://"):
             if v.startswith(prefix):
                 return "postgresql+psycopg://" + v[len(prefix):]
