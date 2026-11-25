@@ -1,0 +1,26 @@
+# Configurația pentru Render (render.com): serverul comunității, construit
+# din backend/Dockerfile. Baza de date PostgreSQL e pe Neon (neon.tech) și
+# vine prin DATABASE_URL.
+services:
+  - type: web
+    name: patronette-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    # Se reconstruiește doar când se schimbă serverul, nu și aplicația.
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: DATABASE_URL
+        sync: false # o completezi tu la creare: adresa de la Neon
+      - key: ADMIN_EMAILS
+        sync: false # e-mailurile voastre, separate prin virgulă
+      - key: JWT_SECRET
+        generateValue: true # Render generează o cheie lungă, aleatorie
+      - key: CORS_ORIGINS
+        value: "*"

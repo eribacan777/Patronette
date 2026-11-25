@@ -36,6 +36,17 @@ class Settings(BaseSettings):
 
     max_image_mb: int = 8
 
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg(cls, v: str) -> str:
+        """Neon și alte servicii dau adresa ca `postgresql://...` sau
+        `postgres://...`; SQLAlchemy trebuie să știe că folosim psycopg 3."""
+        v = v.strip()
+        for prefix in ("postgres://", "postgresql://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg://" + v[len(prefix):]
+        return v
+
     @field_validator("jwt_secret")
     @classmethod
     def _secret_is_long(cls, v: str) -> str:
