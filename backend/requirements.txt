@@ -1,0 +1,17 @@
+# Serverul Patronette (comunitatea): API REST + PostgreSQL.
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.9
+psycopg[binary]==3.3.9
+PyJWT==2.15.1
+pwdlib[argon2]==0.4.2
+python-multipart==0.0.34
+pillow==13.0.0
+google-auth==2.63.1
+requests==2.34.2
+pydantic-settings==2.16.3
+email-validator==2.4.0
+
+# Doar pentru teste
+pytest==9.2.0
+httpx==0.28.1

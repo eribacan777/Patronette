@@ -49,3 +49,8 @@ app.*.map.json
 
 # Python (scriptul pentru logo)
 __pycache__/
+
+# Serverul (backend)
+backend/.venv/
+backend/.env
+backend/.pytest_cache/
