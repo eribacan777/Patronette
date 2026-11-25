@@ -15,7 +15,11 @@ corpului și le exportă ca PDF la scară reală, de printat pe coli A4.
 5. **Calculator de material** – spune câți metri trebuie cumpărați la
    lățimea aleasă (110, 140 sau 150 cm) și arată așezarea pieselor pe
    materialul pliat.
-6. **Export PDF** – o pagină cu instrucțiuni, pătrat de test de 5 × 5 cm și
+6. **Comunitate** – postări cu sfaturi, link-uri, poze și tipare distribuite
+   (cine deschide un tipar îl vede pe măsurile ei), aprecieri, comentarii,
+   raportare și blocare. Merge prin serverul din `backend/` (FastAPI +
+   PostgreSQL); măsurile nu ajung niciodată pe server.
+7. **Export PDF** – o pagină cu instrucțiuni, pătrat de test de 5 × 5 cm și
    harta paginilor, apoi tiparul 1:1 împărțit pe A4, cu romburi de potrivire.
 
 ## Cum rulezi aplicația

@@ -10,22 +10,68 @@ import '../format.dart';
 import '../garments/garment.dart';
 import '../geometry.dart';
 import '../models/profile.dart';
+import '../community/community.dart';
+import '../community/models.dart';
+import '../community/new_post_screen.dart';
+import '../community/post_actions.dart';
 import '../theme.dart';
 import 'fabric_screen.dart';
 
 /// Tiparul generat: previzualizare, setări și export PDF.
 class PatternScreen extends StatefulWidget {
-  const PatternScreen({super.key, required this.garment, required this.profile});
+  const PatternScreen(
+      {super.key,
+      required this.garment,
+      required this.profile,
+      this.initialOptions});
 
   final Garment garment;
   final Profile profile;
+
+  /// Setări de pornire, de exemplu dintr-un tipar distribuit în comunitate.
+  final Map<String, double>? initialOptions;
 
   @override
   State<PatternScreen> createState() => _PatternScreenState();
 }
 
 class _PatternScreenState extends State<PatternScreen> {
-  late final Map<String, double> _options = widget.garment.defaultOptions;
+  late final Map<String, double> _options = _startOptions();
+
+  @visibleForTesting
+  Map<String, double> get debugOptions => Map.unmodifiable(_options);
+
+  /// Setările implicite, peste care se pun cele primite, dar doar cele pe
+  /// care modelul le cunoaște și în limitele lor.
+  Map<String, double> _startOptions() {
+    final options = widget.garment.defaultOptions;
+    final given = widget.initialOptions ?? const {};
+    for (final o in widget.garment.options) {
+      final v = given[o.key];
+      if (v == null || !v.isFinite) continue;
+      options[o.key] = o.choices != null
+          ? (o.choices!.containsKey(v) ? v : o.defaultValue)
+          : v.clamp(o.min, o.max).toDouble();
+    }
+    return options;
+  }
+
+  Future<void> _share() async {
+    final actions = PostActions(communitySession);
+    if (!await actions.ensureLoggedIn(context) || !mounted) return;
+    final posted = await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => NewPostScreen(
+        session: communitySession,
+        pattern: SharedPattern(
+            garmentId: widget.garment.id, options: Map.of(_options)),
+      ),
+    ));
+    if (posted != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Tiparul a fost distribuit în comunitate.')));
+    }
+  }
+
   double _seam = 1;
   double _hem = 2;
   double _fabricWidth = 150;
@@ -68,8 +114,8 @@ class _PatternScreenState extends State<PatternScreen> {
     final layout = PatternLayout.build(draft.pieces, seam: _seam, hem: _hem);
     final pages = TileGrid(layout).usedCount;
     // Corsajul se oprește în talie: nu are tiv, deci nici glisor de tiv.
-    final hasHem = draft.pieces
-        .any((p) => p.outline.any((s) => s.kind == EdgeKind.hem));
+    final hasHem =
+        draft.pieces.any((p) => p.outline.any((s) => s.kind == EdgeKind.hem));
     final fabric = FabricPlan.compute(draft.pieces,
         fabricWidth: _fabricWidth, seam: _seam, hem: _hem);
 
@@ -127,6 +173,13 @@ class _PatternScreenState extends State<PatternScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.garment.name),
+        actions: [
+          IconButton(
+            tooltip: 'Distribuie în comunitate',
+            icon: const Icon(Icons.forum_outlined),
+            onPressed: _share,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(20),
           child: Padding(
@@ -188,7 +241,8 @@ class _PatternScreenState extends State<PatternScreen> {
           padding: const EdgeInsets.only(top: 8, bottom: 8),
           child: Text('Material necesar',
               style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.primary, fontWeight: FontWeight.w700)),
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w700)),
         ),
         const Text('Lățimea materialului'),
         const SizedBox(height: 8),
@@ -226,7 +280,8 @@ class _PatternScreenState extends State<PatternScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    onPressed: () =>
+                        Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => FabricScreen(
                           plan: fabric, garmentName: widget.garment.name),
                     )),

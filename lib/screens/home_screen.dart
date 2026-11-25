@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../community/community.dart';
+import '../community/community_screen.dart';
 import '../data/profile_store.dart';
 import '../models/profile.dart';
 import '../theme.dart';
@@ -52,10 +54,17 @@ class HomeScreen extends StatelessWidget {
         title: const Text('Patronette'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.forum_outlined),
+            tooltip: 'Comunitate',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) =>
+                    CommunityScreen(store: store, session: communitySession))),
+          ),
+          IconButton(
             icon: const Icon(Icons.straighten),
             tooltip: 'Ghid de măsurare',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const MeasureGuideScreen())),
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MeasureGuideScreen())),
           ),
         ],
       ),
@@ -191,8 +200,7 @@ class _LoadErrorCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       child: ListTile(
         leading: Icon(Icons.warning_amber, color: scheme.onErrorContainer),
-        title: Text(message,
-            style: TextStyle(color: scheme.onErrorContainer)),
+        title: Text(message, style: TextStyle(color: scheme.onErrorContainer)),
         subtitle: Text(
             canSave
                 ? 'Datele vechi au fost păstrate separat pe telefon și nu se '
@@ -237,9 +245,11 @@ class _Welcome extends StatelessWidget {
                       fontWeight: FontWeight.w700),
                   textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              step(Icons.straighten, '1. Ia-ți măsurile, după ghid', Accent.of(0)),
+              step(Icons.straighten, '1. Ia-ți măsurile, după ghid',
+                  Accent.of(0)),
               step(Icons.checkroom, '2. Alege un model de haină', Accent.of(1)),
-              step(Icons.print, '3. Printează tiparul la scară reală', Accent.of(2)),
+              step(Icons.print, '3. Printează tiparul la scară reală',
+                  Accent.of(2)),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: onStart,
