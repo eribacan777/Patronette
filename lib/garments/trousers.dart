@@ -21,6 +21,11 @@ class Trousers extends Garment {
   /// Cât se pliază sus pentru tunel: elastic de 2,5 cm + 1,5 cm joc.
   static const casing = 4.0;
 
+  /// Elasticul e cu 8% mai scurt decât talia, ca să țină pantalonii sus.
+  /// Rotunjit la centimetru.
+  static double elasticLength(double waist) =>
+      double.parse((waist * 0.92).toStringAsFixed(0));
+
   @override
   String get id => 'pantaloni';
   @override
@@ -96,8 +101,7 @@ class Trousers extends Garment {
       hemHalf: hemQuarter + 1,
     );
 
-    // Elasticul e cu 8% mai scurt decât talia, ca să țină pantalonii sus.
-    final elastic = double.parse((waist * 0.92).toStringAsFixed(0));
+    final elastic = elasticLength(waist);
     return Draft(
       pieces: [front, back],
       notes: [

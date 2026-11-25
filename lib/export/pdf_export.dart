@@ -12,6 +12,8 @@ import '../format.dart';
 import '../garments/garment.dart';
 import '../geometry.dart';
 import '../models/measurements.dart';
+import '../sewing/guides.dart';
+import '../sewing/sketches.dart';
 import '../models/pattern.dart';
 import '../models/profile.dart';
 import 'tiles.dart';
@@ -59,7 +61,8 @@ class PdfPatternCanvas implements PatternCanvas {
     final p = map(topLeft);
     g.setFillColor(PdfColors.black);
     // drawString primește linia de bază a textului, nu colțul de sus.
-    g.drawString(bold ? this.bold : regular, size, fix(s), p.x, p.y - size * 0.85);
+    g.drawString(
+        bold ? this.bold : regular, size, fix(s), p.x, p.y - size * 0.85);
   }
 }
 
@@ -87,8 +90,20 @@ Future<_Fonts> _loadFonts() async {
 /// Înlocuiește diacriticele pe care Helvetica nu le are.
 String stripDiacritics(String s) {
   const map = {
-    'ă': 'a', 'â': 'a', 'î': 'i', 'ș': 's', 'ş': 's', 'ț': 't', 'ţ': 't',
-    'Ă': 'A', 'Â': 'A', 'Î': 'I', 'Ș': 'S', 'Ş': 'S', 'Ț': 'T', 'Ţ': 'T',
+    'ă': 'a',
+    'â': 'a',
+    'î': 'i',
+    'ș': 's',
+    'ş': 's',
+    'ț': 't',
+    'ţ': 't',
+    'Ă': 'A',
+    'Â': 'A',
+    'Î': 'I',
+    'Ș': 'S',
+    'Ş': 'S',
+    'Ț': 'T',
+    'Ţ': 'T',
   };
   return s.split('').map((ch) => map[ch] ?? ch).join();
 }
@@ -118,6 +133,10 @@ Future<Uint8List> buildPatternPdf({
   const cm = PdfPageFormat.cm;
   const format = PdfPageFormat.a4;
 
+  final fabric = FabricPlan.compute(draft.pieces,
+      fabricWidth: fabricWidth, seam: seam, hem: hem);
+  final guide = sewingGuide(garment, options, profile.values, fabric: fabric);
+
   final doc = pw.Document(
     title: '${garment.name} – ${profile.name}',
     author: 'Patronette',
@@ -129,8 +148,7 @@ Future<Uint8List> buildPatternPdf({
     margin: const pw.EdgeInsets.all(1.5 * cm),
     theme: pw.ThemeData.withFont(base: fonts.regular, bold: fonts.bold),
     build: (ctx) => _coverPage(ctx, t, fonts, garment, draft, profile, options,
-        seam, hem, layout, grid,
-        FabricPlan.compute(draft.pieces, fabricWidth: fabricWidth, seam: seam, hem: hem)),
+        seam, hem, layout, grid, fabric),
   ));
 
   for (var r = 0; r < grid.rows; r++) {
@@ -144,14 +162,112 @@ Future<Uint8List> buildPatternPdf({
           final bold = fonts.bold.getFont(ctx);
           return pw.CustomPaint(
             size: PdfPoint(format.width, format.height),
-            painter: (g, size) => _paintTile(
-                g, size, reg, bold, t, layout, grid, r, c, footer),
+            painter: (g, size) =>
+                _paintTile(g, size, reg, bold, t, layout, grid, r, c, footer),
           );
         },
       ));
     }
   }
+  if (guide.steps.isNotEmpty) {
+    doc.addPage(pw.MultiPage(
+      pageFormat: format,
+      margin: const pw.EdgeInsets.all(1.5 * cm),
+      theme: pw.ThemeData.withFont(base: fonts.regular, bold: fonts.bold),
+      footer: (ctx) => pw.Align(
+        alignment: pw.Alignment.centerRight,
+        child: pw.Text(t(footer), style: const pw.TextStyle(fontSize: 8)),
+      ),
+      build: (ctx) => _sewingPages(ctx, t, fonts, garment, guide),
+    ));
+  }
   return doc.save();
+}
+
+/// Paginile cu instrucțiunile de coasere: materiale și pași, cu schițe.
+List<pw.Widget> _sewingPages(pw.Context ctx, String Function(String) t,
+    _Fonts fonts, Garment garment, SewingGuide guide) {
+  const cm = PdfPageFormat.cm;
+  final heading = pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold);
+  const small = pw.TextStyle(fontSize: 9.5);
+  final reg = fonts.regular.getFont(ctx);
+  final bold = fonts.bold.getFont(ctx);
+
+  pw.Widget sketch(Sketch s) {
+    const w = 3.4 * cm;
+    const h = w * sketchHeight / sketchWidth;
+    return pw.Container(
+      width: w + 8,
+      height: h + 8,
+      padding: const pw.EdgeInsets.all(4),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(width: 0.5, color: PdfColors.grey400),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+      ),
+      child: pw.CustomPaint(
+        size: const PdfPoint(w, h),
+        painter: (g, size) {
+          final k = size.x / sketchWidth;
+          PdfPoint map(Pt p) => PdfPoint(p.x * k, size.y - p.y * k);
+          drawSketch(PdfPatternCanvas(g, reg, bold, map, t), s);
+        },
+      ),
+    );
+  }
+
+  return [
+    pw.Text(t('Cum se coase · ${garment.name}'),
+        style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+    pw.Text(t('Nivel: ${guide.level}'
+        '${guide.time.isEmpty ? '' : ' · timp aproximativ: ${guide.time}'}')),
+    pw.SizedBox(height: 10),
+    pw.Text(t('De ce ai nevoie'), style: heading),
+    for (final s in guide.supplies)
+      pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 2),
+        child: pw.Text(t('• $s'), style: small),
+      ),
+    pw.SizedBox(height: 10),
+    pw.Text(t('Pașii'), style: heading),
+    pw.SizedBox(height: 4),
+    for (var i = 0; i < guide.steps.length; i++)
+      pw.Container(
+        padding: const pw.EdgeInsets.symmetric(vertical: 6),
+        decoration: const pw.BoxDecoration(
+          border: pw.Border(
+              bottom: pw.BorderSide(width: 0.4, color: PdfColors.grey300)),
+        ),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(
+              width: 0.8 * cm,
+              child: pw.Text('${i + 1}.',
+                  style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                      color: _rose)),
+            ),
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(t(guide.steps[i].title),
+                      style: pw.TextStyle(
+                          fontSize: 10.5, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(t(guide.steps[i].text), style: small),
+                ],
+              ),
+            ),
+            if (guide.steps[i].sketch != null) ...[
+              pw.SizedBox(width: 10),
+              sketch(guide.steps[i].sketch!),
+            ],
+          ],
+        ),
+      ),
+  ];
 }
 
 void _paintTile(
@@ -173,8 +289,8 @@ void _paintTile(
   final label = TileGrid.label(row, col);
 
   // Originea PDF-ului este jos-stânga, iar pe planșă sus-stânga.
-  PdfPoint map(Pt p) => PdfPoint(
-      (m + p.x - col * tw) * cm, h - (m + p.y - row * th) * cm);
+  PdfPoint map(Pt p) =>
+      PdfPoint((m + p.x - col * tw) * cm, h - (m + p.y - row * th) * cm);
 
   // Eticheta mare, gri, în fundal: ajută la lipirea paginilor.
   g.setFillColor(PdfColors.grey200);
@@ -260,6 +376,7 @@ pw.Widget _coverPage(
     'Linia continuă este linia de tăiere, linia punctată este linia de cusătură.',
     'Taie din material câte bucăți scrie pe fiecare piesă. „Pe pliu” înseamnă '
         'că marginea aceea se așază pe îndoitura materialului.',
+    'Instrucțiunile de coasere, pas cu pas, sunt pe ultimele pagini.',
   ];
 
   pw.Widget lines(List<String> items) => pw.Column(
@@ -301,7 +418,8 @@ pw.Widget _coverPage(
                 lines(optionLines),
                 pw.SizedBox(height: 8),
                 pw.Text(t('Piese'), style: heading),
-                lines([for (final p in draft.pieces) '${p.name}: ${p.cutInfo}']),
+                lines(
+                    [for (final p in draft.pieces) '${p.name}: ${p.cutInfo}']),
               ],
             ),
           ),
@@ -328,16 +446,15 @@ pw.Widget _coverPage(
         lines([for (final n in draft.notes) '• $n']),
       ],
       pw.SizedBox(height: 12),
-      pw.Text(
-          t('Harta paginilor (${grid.usedCount} pagini de printat)'),
+      pw.Text(t('Harta paginilor (${grid.usedCount} pagini de printat)'),
           style: heading),
       pw.SizedBox(height: 6),
       pw.CustomPaint(
         size: mapSize,
         painter: (g, size) {
           PdfPoint map(Pt p) => PdfPoint(p.x * k, size.y - p.y * k);
-          drawLayout(
-              PdfPatternCanvas(g, reg, bold, map, t), layout, showText: false);
+          drawLayout(PdfPatternCanvas(g, reg, bold, map, t), layout,
+              showText: false);
           for (var r = 0; r < grid.rows; r++) {
             for (var c = 0; c < grid.cols; c++) {
               final b = grid.tile(r, c);
@@ -350,9 +467,11 @@ pw.Widget _coverPage(
               g.strokePath();
               if (!used) g.setLineDashPattern([]);
               if (used) {
-                final center = map(Pt(b.minX + b.width / 2, b.minY + b.height / 2));
+                final center =
+                    map(Pt(b.minX + b.width / 2, b.minY + b.height / 2));
                 g.setFillColor(_rose);
-                g.drawString(bold, 10, TileGrid.label(r, c), center.x - 7, center.y - 4);
+                g.drawString(
+                    bold, 10, TileGrid.label(r, c), center.x - 7, center.y - 4);
               }
             }
           }

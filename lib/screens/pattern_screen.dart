@@ -14,6 +14,8 @@ import '../community/community.dart';
 import '../community/models.dart';
 import '../community/new_post_screen.dart';
 import '../community/post_actions.dart';
+import '../sewing/guides.dart';
+import '../sewing/sewing_screen.dart';
 import '../theme.dart';
 import 'fabric_screen.dart';
 
@@ -145,8 +147,22 @@ class _PatternScreenState extends State<PatternScreen> {
               label: Text('${draft.pieces.length} piese')),
           Chip(
               avatar: const Icon(Icons.description_outlined, size: 18),
-              label: Text('$pages pagini A4 + 1 de instrucțiuni')),
+              label: Text('$pages pagini A4 + instrucțiuni')),
         ]),
+        const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => SewingScreen(
+              garmentId: widget.garment.id,
+              garmentName: widget.garment.name,
+              guide: sewingGuide(
+                  widget.garment, _options, widget.profile.values,
+                  fabric: fabric),
+            ),
+          )),
+          icon: const Icon(Icons.menu_book_outlined),
+          label: const Text('Cum se coase, pas cu pas'),
+        ),
         const SizedBox(height: 4),
         Text('Apropie cu două degete ca să vezi detaliile.',
             style: Theme.of(context).textTheme.bodySmall),
