@@ -8,10 +8,16 @@ from functools import lru_cache
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ArgumentError
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # hide_input_in_errors: o eroare de configurare nu are voie să scrie în
+    # log valoarea primită (adresa bazei de date conține parola).
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", hide_input_in_errors=True
+    )
 
     # postgresql+psycopg://utilizator:parola@gazda:5432/baza
     database_url: str
@@ -42,13 +48,29 @@ class Settings(BaseSettings):
         """Neon și alte servicii dau adresa ca `postgresql://...` sau
         `postgres://...`; SQLAlchemy trebuie să știe că folosim psycopg 3."""
         v = v.strip()
+        # Copiat cu tot cu numele variabilei: DATABASE_URL=postgresql://...
+        if v.upper().startswith("DATABASE_URL="):
+            v = v[len("DATABASE_URL="):].strip()
         # Neon poate afișa adresa ca o comandă: psql 'postgresql://...'
         if v.startswith("psql"):
             v = v[4:].strip()
         v = v.strip("'\"").strip()
         for prefix in ("postgres://", "postgresql://"):
             if v.startswith(prefix):
-                return "postgresql+psycopg://" + v[len(prefix):]
+                v = "postgresql+psycopg://" + v[len(prefix):]
+                break
+        try:
+            make_url(v)
+        except ArgumentError:
+            # Arătăm doar începutul: restul adresei conține parola.
+            raise ValueError(
+                "DATABASE_URL nu e o adresă PostgreSQL validă. Trebuie să înceapă cu "
+                f"postgresql:// (acum începe cu {v[:8]!r}, are {len(v)} caractere)."
+            )
+        if not v.startswith("postgresql"):
+            raise ValueError(
+                f"DATABASE_URL trebuie să fie o bază PostgreSQL (acum începe cu {v[:8]!r})."
+            )
         return v
 
     @field_validator("jwt_secret")
