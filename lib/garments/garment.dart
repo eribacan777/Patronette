@@ -48,8 +48,10 @@ abstract class Garment {
 
   /// Măsurile de care are nevoie modelul și care lipsesc din profil.
   /// Un tipar adevărat (ecran, PDF) se face doar când lista e goală.
-  List<String> missingMeasurements(Measurements m) =>
-      [for (final k in measurementKeys) if (m[k] == null) k];
+  List<String> missingMeasurements(Measurements m) => [
+        for (final k in measurementKeys)
+          if (m[k] == null) k
+      ];
 
   /// O măsură din profil. Dacă lipsește, folosim valoarea tipică, dar doar
   /// pentru miniaturi: înainte de tipar se verifică [missingMeasurements].

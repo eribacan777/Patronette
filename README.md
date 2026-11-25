@@ -7,8 +7,9 @@ corpului și le exportă ca PDF la scară reală, de printat pe coli A4.
 
 1. **Profiluri de măsuri** – salvezi măsurile mai multor persoane, pe telefon.
 2. **Ghid de măsurare** – fiecare măsură are un desen și o explicație.
-3. **Patru modele** – fustă dreaptă, fustă cloș (cerc sau semicerc),
-   tricou, corsaj de bază.
+3. **Șase modele** – fustă dreaptă, fustă cloș (cerc sau semicerc),
+   tricou, corsaj de bază, rochie lungă cu mâneci lungi (fără fermoar, cu
+   cordon în talie) și pantaloni cu talie pe elastic.
 4. **Previzualizare** – tiparul se redesenează imediat când schimbi
    lungimea, lărgimea sau rezervele de cusătură.
 5. **Calculator de material** – spune câți metri trebuie cumpărați la
@@ -89,7 +90,11 @@ adaugă 10 cm pentru intrarea la spălat.
 - profilurile salvate care nu pot fi citite sunt puse deoparte și nu se
   pierd la salvarea unui profil nou;
 - un model cu măsuri lipsă le cere înainte de tipar, iar PDF-ul nu se face
-  cu măsuri inventate.
+  cu măsuri inventate;
+- rochia lungă: mâneca intră în răscroială, rochia e destul de largă la
+  șold, mâna trece prin manșetă, spatele are cusătură la material neelastic;
+- pantalonii: talia de sus trece peste șold, lungimea urmează piciorul,
+  cusăturile față–spate au aproape aceeași lungime.
 
 ## Limite cunoscute
 

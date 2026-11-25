@@ -101,6 +101,15 @@ class _FigurePainter extends CustomPainter {
         canvas.drawLine(const Offset(100, 100), const Offset(100, 122), mark);
         canvas.drawLine(const Offset(95, 100), const Offset(105, 100), mark);
         canvas.drawLine(const Offset(95, 122), const Offset(105, 122), mark);
+      case 'inaltimeSezut':
+        // De la talie până la locul unde pornesc picioarele.
+        canvas.drawLine(const Offset(100, 100), const Offset(100, 132), mark);
+        canvas.drawLine(const Offset(95, 100), const Offset(105, 100), mark);
+        canvas.drawLine(const Offset(95, 132), const Offset(105, 132), mark);
+      case 'lungimePicior':
+        canvas.drawLine(const Offset(100, 100), const Offset(100, 208), mark);
+        canvas.drawLine(const Offset(95, 100), const Offset(105, 100), mark);
+        canvas.drawLine(const Offset(95, 208), const Offset(105, 208), mark);
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../geometry.dart';
 import '../models/pattern.dart';
 
@@ -46,3 +48,58 @@ PatternPiece waistband(double waist) => foldedStrip(
       length: waist + 1 + 3,
       width: 8,
     );
+
+/// Mânecă tăiată pe pliu, potrivită cu răscroiala. Înălțimea capului se caută automat astfel încât
+/// jumătatea lui să aibă exact lungimea unei răscroieli.
+({PatternPiece piece, double capLength, bool tooWide}) fittedSleeve({
+  required double arm,
+  required double ease,
+  required double armholeLength,
+  required double length,
+  double minHemHalf = 9,
+}) {
+  final halfWidth = (arm + ease * 0.6) / 2;
+
+  CubicSeg cap(double height) => CubicSeg(
+        const Pt(0, 0),
+        Pt(halfWidth * 0.45, 0),
+        Pt(halfWidth * 0.6, height),
+        Pt(halfWidth, height),
+      );
+
+  // Căutare binară: un cap mai înalt are o curbă mai lungă.
+  var lo = 1.0, hi = 30.0;
+  for (var i = 0; i < 40; i++) {
+    final mid = (lo + hi) / 2;
+    if (cap(mid).length < armholeLength) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  final capHeight = (lo + hi) / 2;
+  final capSeg = cap(capHeight);
+  final tooWide = capSeg.length < armholeLength - 0.5;
+
+  final sleeveLength = math.max(length, capHeight + 3);
+  // Mâneca se îngustează spre încheietură.
+  final hemHalf = math.max(halfWidth - (sleeveLength - capHeight) * 0.12,
+      math.max(halfWidth * 0.55, minHemHalf));
+  final hemX = math.min(hemHalf, halfWidth);
+
+  final piece = PatternPiece(
+    name: 'Mânecă',
+    cutInfo: 'Taie 2 pe pliu',
+    copies: 2,
+    outline: [
+      capSeg,
+      LineSeg(Pt(halfWidth, capHeight), Pt(hemX, sleeveLength)),
+      LineSeg(Pt(hemX, sleeveLength), Pt(0, sleeveLength), EdgeKind.hem),
+      LineSeg(Pt(0, sleeveLength), const Pt(0, 0), EdgeKind.fold),
+    ],
+    grainFrom: Pt(hemX * 0.8, capHeight + 0.5),
+    grainTo: Pt(hemX * 0.8, sleeveLength - 1),
+    labelAt: Pt(1.5, capHeight + 0.5),
+  );
+  return (piece: piece, capLength: capSeg.length, tooWide: tooWide);
+}

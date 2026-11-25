@@ -97,8 +97,8 @@ class StraightSkirt extends Garment {
       ),
       LineSeg(Pt(hipQuarter, hipDepth), Pt(hipQuarter, length)),
       LineSeg(Pt(hipQuarter, length), Pt(0, length), EdgeKind.hem),
-      LineSeg(Pt(0, length), Pt(0, centerY),
-          front ? EdgeKind.fold : EdgeKind.seam),
+      LineSeg(
+          Pt(0, length), Pt(0, centerY), front ? EdgeKind.fold : EdgeKind.seam),
     ];
 
     // Peste 3,5 cm, o singură pensă ar fi prea adâncă: o împărțim în două.

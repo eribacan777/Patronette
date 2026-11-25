@@ -96,6 +96,24 @@ const kMeasurements = <MeasurementDef>[
     max: 50,
     example: 40,
   ),
+  MeasurementDef(
+    key: 'inaltimeSezut',
+    label: 'Înălțimea de șezut',
+    howTo: 'Stai drept pe un scaun tare. Pe lateral, măsoară de la sfoara din '
+        'talie până la suprafața scaunului.',
+    min: 20,
+    max: 36,
+    example: 27,
+  ),
+  MeasurementDef(
+    key: 'lungimePicior',
+    label: 'Lungimea piciorului',
+    howTo: 'În picioare, pe lateral, de la sfoara din talie în jos până la '
+        'osul gleznei.',
+    min: 80,
+    max: 120,
+    example: 98,
+  ),
 ];
 
 MeasurementDef measurementDef(String key) =>
