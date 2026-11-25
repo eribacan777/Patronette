@@ -171,8 +171,7 @@ class _PatternTile extends StatelessWidget {
       // Material, nu Container colorat: altfel nu se vede efectul de apăsare.
       child: ListTile(
         tileColor: accent.light,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         leading: Icon(Icons.content_cut, color: accent.strong),
         title: Text(garment?.name ?? 'Tipar necunoscut',
             style:

@@ -5,13 +5,19 @@ import 'package:http/http.dart' as http;
 
 import 'models.dart';
 
-/// Adresa serverului. Se poate schimba la build:
-///   flutter build apk --dart-define=API_URL=https://patronette-api.onrender.com
-/// Implicit: serverul local. Pe emulatorul Android, calculatorul se vede ca
-/// 10.0.2.2; în browser, ca localhost.
+/// Serverul din cloud (Render), cu baza de date PostgreSQL pe Neon.
+const cloudApiUrl = 'https://patronette-api.onrender.com';
+
+/// Adresa serverului:
+/// - varianta finală (release) folosește serverul din cloud;
+/// - în dezvoltare, serverul local: pe emulatorul Android calculatorul se
+///   vede ca 10.0.2.2, în browser ca localhost;
+/// - oricare se poate schimba la build:
+///   flutter build apk --dart-define=API_URL=http://10.0.2.2:8000
 String defaultApiUrl() {
   const fromBuild = String.fromEnvironment('API_URL');
   if (fromBuild.isNotEmpty) return fromBuild;
+  if (kReleaseMode) return cloudApiUrl;
   if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     return 'http://10.0.2.2:8000';
   }
@@ -43,6 +49,10 @@ class CommunityApi {
   /// Tokenul de login, pus de [Session].
   String? token;
 
+  /// Apelat când serverul respinge tokenul (expirat sau de pe alt server).
+  /// [Session] o deconectează pe utilizatoare.
+  void Function()? onUnauthorized;
+
   static const _timeout = Duration(seconds: 20);
 
   Uri _uri(String path, [Map<String, String>? query]) =>
@@ -66,6 +76,12 @@ class CommunityApi {
     }
     if (r.statusCode >= 200 && r.statusCode < 300) {
       return r.body.isEmpty ? null : jsonDecode(utf8.decode(r.bodyBytes));
+    }
+    // Un token respins nu mai are niciun rost: îl uităm, ca următoarele
+    // cereri (de exemplu lista de postări) să meargă fără cont.
+    if (r.statusCode == 401 && token != null) {
+      token = null;
+      onUnauthorized?.call();
     }
     throw ApiException(_errorMessage(r), status: r.statusCode);
   }

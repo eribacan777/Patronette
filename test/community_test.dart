@@ -16,7 +16,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Map<String, dynamic> postJson(int id, {String text = 'Sfat bun', Map? pattern, String? link}) => {
+Map<String, dynamic> postJson(int id,
+        {String text = 'Sfat bun', Map? pattern, String? link}) =>
+    {
       'id': id,
       'author': {'id': 7, 'display_name': 'Maria'},
       'text': text,
@@ -31,9 +33,9 @@ Map<String, dynamic> postJson(int id, {String text = 'Sfat bun', Map? pattern, S
       'created_at': '2026-11-25T10:00:00Z',
     };
 
-http.Response jsonResponse(Object body, [int status = 200]) => http.Response(
-    jsonEncode(body), status,
-    headers: {'content-type': 'application/json; charset=utf-8'});
+http.Response jsonResponse(Object body, [int status = 200]) =>
+    http.Response(jsonEncode(body), status,
+        headers: {'content-type': 'application/json; charset=utf-8'});
 
 void main() {
   group('Clientul API', () {
@@ -45,7 +47,10 @@ void main() {
           seen = req;
           return jsonResponse({
             'posts': [
-              postJson(2, pattern: {'garment_id': 'fusta-dreapta', 'options': {'lungime': 60}}),
+              postJson(2, pattern: {
+                'garment_id': 'fusta-dreapta',
+                'options': {'lungime': 60}
+              }),
               postJson(1, link: 'https://exemplu.ro'),
             ],
             'next_before_id': 1,
@@ -64,7 +69,8 @@ void main() {
     test('mesajele de eroare ale serverului ajung la utilizatoare', () async {
       final api = CommunityApi(
         baseUrl: 'http://server',
-        client: MockClient((_) async => jsonResponse({'detail': 'E-mail sau parolă greșită.'}, 401)),
+        client: MockClient((_) async =>
+            jsonResponse({'detail': 'E-mail sau parolă greșită.'}, 401)),
       );
       await expectLater(
         api.login('a@b.ro', 'x'),
@@ -79,21 +85,29 @@ void main() {
         baseUrl: 'http://server',
         client: MockClient((_) async => jsonResponse({
               'detail': [
-                {'loc': ['body', 'password'], 'msg': 'too short'}
+                {
+                  'loc': ['body', 'password'],
+                  'msg': 'too short'
+                }
               ]
             }, 422)),
       );
-      await expectLater(api.register('a@b.ro', 'x', 'Ana'),
-          throwsA(isA<ApiException>().having((e) => e.message, 'mesaj', contains('8 caractere'))));
+      await expectLater(
+          api.register('a@b.ro', 'x', 'Ana'),
+          throwsA(isA<ApiException>()
+              .having((e) => e.message, 'mesaj', contains('8 caractere'))));
     });
 
     test('fără server: mesaj prietenos, nu o eroare tehnică', () async {
       final api = CommunityApi(
         baseUrl: 'http://server',
-        client: MockClient((_) async => throw http.ClientException('connection refused')),
+        client: MockClient(
+            (_) async => throw http.ClientException('connection refused')),
       );
-      await expectLater(api.feed(),
-          throwsA(isA<ApiException>().having((e) => e.message, 'mesaj', contains('conecta'))));
+      await expectLater(
+          api.feed(),
+          throwsA(isA<ApiException>()
+              .having((e) => e.message, 'mesaj', contains('conecta'))));
     });
   });
 
@@ -120,11 +134,68 @@ void main() {
     expect(after.loggedIn, isFalse);
   });
 
+  test('un login de pe alt server nu se refolosește', () async {
+    SharedPreferences.setMockInitialValues({});
+    final local = CommunityApi(
+      baseUrl: 'http://10.0.2.2:8000',
+      client: MockClient((_) async => jsonResponse({
+            'token': 'tok-local',
+            'user': {'id': 3, 'display_name': 'Ana', 'is_admin': false}
+          })),
+    );
+    await Session(local).login('ana@exemplu.ro', 'parola-buna');
+
+    final cloud = CommunityApi(baseUrl: 'https://patronette-api.onrender.com');
+    final session = Session(cloud);
+    await session.restore();
+    expect(session.loggedIn, isFalse);
+    expect(cloud.token, isNull);
+  });
+
+  testWidgets('tokenul respins: deconectare și postările se văd fără cont',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final api = CommunityApi(
+      baseUrl: 'http://server',
+      client: MockClient((req) async {
+        if (req.url.path == '/auth/login') {
+          return jsonResponse({
+            'token': 'expirat',
+            'user': {'id': 3, 'display_name': 'Ana', 'is_admin': false}
+          });
+        }
+        if (req.headers.containsKey('Authorization')) {
+          return jsonResponse(
+              {'detail': 'Sesiunea a expirat. Conectează-te din nou.'}, 401);
+        }
+        return jsonResponse({
+          'posts': [postJson(1, text: 'Postare publică')],
+          'next_before_id': null,
+        });
+      }),
+    );
+    final session = Session(api);
+    await tester.runAsync(() => session.login('ana@exemplu.ro', 'parola-buna'));
+    expect(session.loggedIn, isTrue);
+
+    await tester.pumpWidget(MaterialApp(
+      home: CommunityScreen(store: ProfileStore(), session: session),
+    ));
+    await tester.pumpAndSettle();
+    expect(session.loggedIn, isFalse);
+    expect(find.text('Postare publică'), findsOneWidget);
+    expect(find.textContaining('expirat'), findsNothing);
+    expect(find.text('Conectare'), findsOneWidget);
+  });
+
   test('timpul postării se scrie pe înțeles', () {
     final now = DateTime(2026, 11, 25, 12);
-    expect(timeAgo(now.subtract(const Duration(seconds: 20)), now: now), 'chiar acum');
-    expect(timeAgo(now.subtract(const Duration(minutes: 5)), now: now), 'acum 5 min');
-    expect(timeAgo(now.subtract(const Duration(hours: 1)), now: now), 'acum o oră');
+    expect(timeAgo(now.subtract(const Duration(seconds: 20)), now: now),
+        'chiar acum');
+    expect(timeAgo(now.subtract(const Duration(minutes: 5)), now: now),
+        'acum 5 min');
+    expect(timeAgo(now.subtract(const Duration(hours: 1)), now: now),
+        'acum o oră');
     expect(timeAgo(now.subtract(const Duration(days: 1)), now: now), 'ieri');
     expect(timeAgo(DateTime(2026, 3, 3), now: now), '3 mar.');
     expect(timeAgo(DateTime(2025, 3, 3), now: now), '3 mar. 2025');
@@ -153,11 +224,13 @@ void main() {
     expect(find.text('Conectare'), findsOneWidget);
   });
 
-  testWidgets('un tipar distribuit se deschide cu setările lui, în limite', (tester) async {
+  testWidgets('un tipar distribuit se deschide cu setările lui, în limite',
+      (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
-    final profile = Profile(id: '1', name: 'Ana', values: Map.of(kExampleMeasurements));
+    final profile =
+        Profile(id: '1', name: 'Ana', values: Map.of(kExampleMeasurements));
     final key = GlobalKey();
     await tester.pumpWidget(MaterialApp(
       home: PatternScreen(
@@ -171,14 +244,16 @@ void main() {
     await tester.pumpAndSettle();
     final state = key.currentState as dynamic;
     final Map<String, double> options = state.debugOptions;
-    final lengthOption = const StraightSkirt().options.firstWhere((o) => o.key == 'lungime');
+    final lengthOption =
+        const StraightSkirt().options.firstWhere((o) => o.key == 'lungime');
     expect(options['lungime'], lengthOption.max);
     expect(options['largime'], 6);
     expect(options.containsKey('necunoscuta'), isFalse);
   });
 
   test('tiparul distribuit nu conține măsuri', () {
-    const shared = SharedPattern(garmentId: 'fusta-dreapta', options: {'lungime': 60});
+    const shared =
+        SharedPattern(garmentId: 'fusta-dreapta', options: {'lungime': 60});
     final json = jsonEncode(shared.toJson());
     for (final key in kExampleMeasurements.keys) {
       expect(json.contains(key), isFalse, reason: key);

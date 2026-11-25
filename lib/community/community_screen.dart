@@ -52,7 +52,12 @@ class _CommunityScreenState extends State<CommunityScreen> {
   // După login sau logout se schimbă ce văd (aprecierile mele, blocările).
   void _onSession() => _refresh();
 
+  /// Crește la fiecare reîncărcare. Un răspuns care sosește după o
+  /// reîncărcare (de exemplu după o deconectare automată) e ignorat.
+  int _generation = 0;
+
   Future<void> _refresh() async {
+    _generation++;
     _posts.clear();
     _nextBeforeId = null;
     _done = false;
@@ -62,18 +67,23 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   Future<void> _loadMore({bool force = false}) async {
     if ((_loading || _done) && !force) return;
+    final generation = _generation;
     setState(() => _loading = true);
     try {
       final page = await widget.session.api.feed(beforeId: _nextBeforeId);
+      if (!mounted || generation != _generation) return;
       setState(() {
         _posts.addAll(page.posts);
         _nextBeforeId = page.nextBeforeId;
         _done = page.nextBeforeId == null;
       });
     } catch (e) {
+      if (!mounted || generation != _generation) return;
       setState(() => _error = '$e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _generation) {
+        setState(() => _loading = false);
+      }
     }
   }
 
