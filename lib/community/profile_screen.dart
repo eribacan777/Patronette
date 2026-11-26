@@ -350,7 +350,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (p.isMe)
         _CollectionTile(
           title: 'Colecție nouă',
-          subtitle: 'Salvează idei, ca pe Pinterest',
+          subtitle: 'Salvează idei',
           icon: Icons.add,
           onTap: _newCollection,
         ),
