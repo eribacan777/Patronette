@@ -144,11 +144,8 @@ class CommunityApi {
 
   // ---------------------------------------------------------------- postări
 
-  Future<PostPage> feed({int? beforeId}) async {
-    final j = await _get('/posts', {
-      'limit': '20',
-      if (beforeId != null) 'before_id': '$beforeId',
-    }) as Map<String, dynamic>;
+  static PostPage _page(dynamic json) {
+    final j = json as Map<String, dynamic>;
     return PostPage(
       [
         for (final p in j['posts'] as List)
@@ -157,6 +154,14 @@ class CommunityApi {
       j['next_before_id'] as int?,
     );
   }
+
+  /// Cele mai noi postări; cu [following], doar de la cei pe care îi urmăresc.
+  Future<PostPage> feed({int? beforeId, bool following = false}) async =>
+      _page(await _get('/posts', {
+        'limit': '20',
+        if (beforeId != null) 'before_id': '$beforeId',
+        if (following) 'following': 'true',
+      }));
 
   Future<Post> post(int id) async =>
       Post.fromJson(await _get('/posts/$id') as Map<String, dynamic>);
@@ -215,4 +220,99 @@ class CommunityApi {
 
   Future<void> hidePost(int id) => _json('POST', '/admin/posts/$id/hide');
   Future<void> restorePost(int id) => _json('POST', '/admin/posts/$id/restore');
+
+  // ---------------------------------------------------------------- profiluri
+
+  Future<UserProfile> profile(int userId) async => UserProfile.fromJson(
+      await _get('/users/$userId') as Map<String, dynamic>);
+
+  Future<PostPage> userPosts(int userId, {int? beforeId}) async =>
+      _page(await _get('/users/$userId/posts', {
+        if (beforeId != null) 'before_id': '$beforeId',
+      }));
+
+  Future<UserProfile> updateMe({String? displayName, String? bio}) async =>
+      UserProfile.fromJson(await _json('PATCH', '/me', {
+        if (displayName != null) 'display_name': displayName,
+        if (bio != null) 'bio': bio,
+      }) as Map<String, dynamic>);
+
+  Future<UserProfile> setAvatar(Uint8List bytes, String name) async {
+    final j = await _send(() async {
+      final req = http.MultipartRequest('PUT', _uri('/me/avatar'))
+        ..headers.addAll(_headers)
+        ..files
+            .add(http.MultipartFile.fromBytes('image', bytes, filename: name));
+      return http.Response.fromStream(await _http.send(req));
+    }) as Map<String, dynamic>;
+    return UserProfile.fromJson(j);
+  }
+
+  Future<UserProfile> deleteAvatar() async => UserProfile.fromJson(
+      await _json('DELETE', '/me/avatar') as Map<String, dynamic>);
+
+  Future<UserProfile> follow(int userId) async => UserProfile.fromJson(
+      await _json('PUT', '/users/$userId/follow') as Map<String, dynamic>);
+
+  Future<UserProfile> unfollow(int userId) async => UserProfile.fromJson(
+      await _json('DELETE', '/users/$userId/follow') as Map<String, dynamic>);
+
+  Future<void> unblock(int userId) => _json('DELETE', '/users/$userId/block');
+
+  Future<List<AppUser>> _people(String path) async => [
+        for (final u in await _get(path) as List)
+          AppUser.fromJson(u as Map<String, dynamic>),
+      ];
+
+  Future<List<AppUser>> followers(int userId) =>
+      _people('/users/$userId/followers');
+  Future<List<AppUser>> following(int userId) =>
+      _people('/users/$userId/following');
+
+  // ---------------------------------------------------------------- colecții
+
+  static List<PostCollection> _collections(dynamic j) => [
+        for (final c in j as List)
+          PostCollection.fromJson(c as Map<String, dynamic>),
+      ];
+
+  /// Colecțiile mele; cu [postId], fiecare spune dacă postarea e în ea.
+  Future<List<PostCollection>> myCollections({int? postId}) async =>
+      _collections(await _get(
+          '/me/collections', {if (postId != null) 'post_id': '$postId'}));
+
+  Future<List<PostCollection>> userCollections(int userId) async =>
+      _collections(await _get('/users/$userId/collections'));
+
+  Future<PostCollection> createCollection(String name,
+          {required bool isPublic}) async =>
+      PostCollection.fromJson(await _json(
+              'POST', '/me/collections', {'name': name, 'is_public': isPublic})
+          as Map<String, dynamic>);
+
+  Future<PostCollection> updateCollection(int id,
+          {String? name, bool? isPublic}) async =>
+      PostCollection.fromJson(await _json('PATCH', '/collections/$id', {
+        if (name != null) 'name': name,
+        if (isPublic != null) 'is_public': isPublic,
+      }) as Map<String, dynamic>);
+
+  Future<void> deleteCollection(int id) => _json('DELETE', '/collections/$id');
+
+  Future<void> savePost(int collectionId, int postId) =>
+      _json('PUT', '/collections/$collectionId/posts/$postId');
+
+  Future<void> unsavePost(int collectionId, int postId) =>
+      _json('DELETE', '/collections/$collectionId/posts/$postId');
+
+  Future<(PostCollection, List<Post>)> collection(int id) async {
+    final j = await _get('/collections/$id') as Map<String, dynamic>;
+    return (
+      PostCollection.fromJson(j['collection'] as Map<String, dynamic>),
+      [
+        for (final p in j['posts'] as List)
+          Post.fromJson(p as Map<String, dynamic>)
+      ],
+    );
+  }
 }

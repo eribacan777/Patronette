@@ -2,21 +2,42 @@
 library;
 
 class AppUser {
-  const AppUser(
-      {required this.id, required this.displayName, this.isAdmin = false});
+  const AppUser({
+    required this.id,
+    required this.displayName,
+    this.isAdmin = false,
+    this.avatarUrl,
+  });
 
   final int id;
   final String displayName;
   final bool isAdmin;
 
+  /// Calea pozei de profil pe server, sau null.
+  final String? avatarUrl;
+
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(
         id: j['id'] as int,
         displayName: j['display_name'] as String,
         isAdmin: j['is_admin'] as bool? ?? false,
+        avatarUrl: j['avatar_url'] as String?,
       );
 
-  Map<String, dynamic> toJson() =>
-      {'id': id, 'display_name': displayName, 'is_admin': isAdmin};
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'display_name': displayName,
+        'is_admin': isAdmin,
+        'avatar_url': avatarUrl,
+      };
+
+  AppUser copyWith(
+          {String? displayName, String? avatarUrl, bool clearAvatar = false}) =>
+      AppUser(
+        id: id,
+        displayName: displayName ?? this.displayName,
+        isAdmin: isAdmin,
+        avatarUrl: clearAvatar ? null : (avatarUrl ?? this.avatarUrl),
+      );
 }
 
 /// Un tipar distribuit: doar modelul și setările, fără măsurile cuiva.
@@ -49,6 +70,7 @@ class Post {
     required this.likeCount,
     required this.commentCount,
     required this.likedByMe,
+    this.savedByMe = false,
     required this.canDelete,
     required this.hidden,
     required this.createdAt,
@@ -65,6 +87,9 @@ class Post {
   final int likeCount;
   final int commentCount;
   final bool likedByMe;
+
+  /// Salvată în cel puțin una dintre colecțiile mele.
+  final bool savedByMe;
   final bool canDelete;
   final bool hidden;
   final DateTime createdAt;
@@ -81,12 +106,19 @@ class Post {
         likeCount: j['like_count'] as int,
         commentCount: j['comment_count'] as int,
         likedByMe: j['liked_by_me'] as bool,
+        savedByMe: j['saved_by_me'] as bool? ?? false,
         canDelete: j['can_delete'] as bool,
         hidden: j['hidden'] as bool? ?? false,
         createdAt: DateTime.parse(j['created_at'] as String).toLocal(),
       );
 
-  Post copyWith({bool? likedByMe, int? likeCount, int? commentCount}) => Post(
+  Post copyWith({
+    bool? likedByMe,
+    int? likeCount,
+    int? commentCount,
+    bool? savedByMe,
+  }) =>
+      Post(
         id: id,
         author: author,
         text: text,
@@ -96,6 +128,7 @@ class Post {
         likeCount: likeCount ?? this.likeCount,
         commentCount: commentCount ?? this.commentCount,
         likedByMe: likedByMe ?? this.likedByMe,
+        savedByMe: savedByMe ?? this.savedByMe,
         canDelete: canDelete,
         hidden: hidden,
         createdAt: createdAt,
@@ -144,5 +177,81 @@ class ReportedPost {
         Post.fromJson(j['post'] as Map<String, dynamic>),
         j['report_count'] as int,
         [for (final r in j['reasons'] as List) r as String],
+      );
+}
+
+/// Profilul public al unei persoane, ca pe Instagram.
+class UserProfile {
+  const UserProfile({
+    required this.id,
+    required this.displayName,
+    required this.bio,
+    required this.avatarUrl,
+    required this.postCount,
+    required this.followerCount,
+    required this.followingCount,
+    required this.followedByMe,
+    required this.blockedByMe,
+    required this.isMe,
+  });
+
+  final int id;
+  final String displayName;
+  final String bio;
+  final String? avatarUrl;
+  final int postCount;
+  final int followerCount;
+  final int followingCount;
+  final bool followedByMe;
+  final bool blockedByMe;
+  final bool isMe;
+
+  factory UserProfile.fromJson(Map<String, dynamic> j) => UserProfile(
+        id: j['id'] as int,
+        displayName: j['display_name'] as String,
+        bio: j['bio'] as String? ?? '',
+        avatarUrl: j['avatar_url'] as String?,
+        postCount: j['post_count'] as int,
+        followerCount: j['follower_count'] as int,
+        followingCount: j['following_count'] as int,
+        followedByMe: j['followed_by_me'] as bool,
+        blockedByMe: j['blocked_by_me'] as bool,
+        isMe: j['is_me'] as bool,
+      );
+
+  AppUser get asUser =>
+      AppUser(id: id, displayName: displayName, avatarUrl: avatarUrl);
+}
+
+/// O colecție de postări salvate, ca un board pe Pinterest.
+class PostCollection {
+  const PostCollection({
+    required this.id,
+    required this.owner,
+    required this.name,
+    required this.isPublic,
+    required this.itemCount,
+    required this.coverUrl,
+    this.containsPost,
+  });
+
+  final int id;
+  final AppUser owner;
+  final String name;
+  final bool isPublic;
+  final int itemCount;
+  final String? coverUrl;
+
+  /// Doar când lista a fost cerută pentru o anumită postare.
+  final bool? containsPost;
+
+  factory PostCollection.fromJson(Map<String, dynamic> j) => PostCollection(
+        id: j['id'] as int,
+        owner: AppUser.fromJson(j['owner'] as Map<String, dynamic>),
+        name: j['name'] as String,
+        isPublic: j['is_public'] as bool,
+        itemCount: j['item_count'] as int,
+        coverUrl: j['cover_url'] as String?,
+        containsPost: j['contains_post'] as bool?,
       );
 }

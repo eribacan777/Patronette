@@ -68,12 +68,33 @@ class Session extends ChangeNotifier {
     await _save(token, user);
   }
 
+  /// După editarea profilului: numele și poza nouă apar peste tot.
+  Future<void> updateUser(AppUser user) async {
+    if (_user == null || user.id != _user!.id) return;
+    _user = AppUser(
+      id: user.id,
+      displayName: user.displayName,
+      isAdmin: _user!.isAdmin,
+      avatarUrl: user.avatarUrl,
+    );
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userKey, jsonEncode(_user!.toJson()));
+    } catch (_) {}
+  }
+
   Future<void> logout() async {
     api.token = null;
     _user = null;
     notifyListeners();
     await _forget();
+    onLogout?.call();
   }
+
+  /// Apelat la deconectare (de exemplu ca Google să ofere iar alegerea
+  /// contului la următorul login).
+  Future<void> Function()? onLogout;
 
   /// Serverul a respins tokenul: deconectare, fără să mai fie nevoie de un
   /// buton apăsat de utilizatoare.

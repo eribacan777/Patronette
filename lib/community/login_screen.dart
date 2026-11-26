@@ -1,6 +1,43 @@
 import 'package:flutter/material.dart';
 
+import 'google_auth.dart';
 import 'session.dart';
+
+/// Butonul „Continuă cu Google”, în stilul cerut de Google: alb, cu „G”.
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1F1F1F),
+        side: const BorderSide(color: Color(0xFF747775)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      onPressed: onPressed,
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              children: [
+                TextSpan(text: 'G', style: TextStyle(color: Color(0xFF4285F4))),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          Text('Continuă cu Google',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
 
 /// Conectare sau cont nou în comunitate.
 class LoginScreen extends StatefulWidget {
@@ -51,6 +88,21 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _google() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final ok = await signInWithGoogle(widget.session);
+      if (ok && mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      setState(() => _error = '$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,6 +125,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 24),
+                    if (googleSignInSupported) ...[
+                      _GoogleButton(onPressed: _busy ? null : _google),
+                      const SizedBox(height: 16),
+                      Row(children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('sau cu e-mail',
+                              style: theme.textTheme.bodySmall),
+                        ),
+                        const Expanded(child: Divider()),
+                      ]),
+                      const SizedBox(height: 16),
+                    ],
                     if (_newAccount) ...[
                       TextFormField(
                         controller: _name,

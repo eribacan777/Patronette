@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/profile_store.dart';
 import 'admin_screen.dart';
+import 'avatar.dart';
 import 'community.dart';
 import 'login_screen.dart';
 import 'models.dart';
@@ -9,6 +10,7 @@ import 'new_post_screen.dart';
 import 'post_actions.dart';
 import 'post_card.dart';
 import 'post_screen.dart';
+import 'profile_screen.dart';
 import 'session.dart';
 
 /// Comunitatea: cele mai noi postări, cu încărcare pe pagini la derulare.
@@ -31,6 +33,9 @@ class _CommunityScreenState extends State<CommunityScreen> {
   bool _loading = false;
   bool _done = false;
   String? _error;
+
+  /// Tabul „Urmăresc”: doar postările celor pe care îi urmăresc.
+  bool _following = false;
 
   @override
   void initState() {
@@ -67,10 +72,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
 
   Future<void> _loadMore({bool force = false}) async {
     if ((_loading || _done) && !force) return;
+    if (_following && !widget.session.loggedIn) {
+      setState(() => _done = true);
+      return;
+    }
     final generation = _generation;
     setState(() => _loading = true);
     try {
-      final page = await widget.session.api.feed(beforeId: _nextBeforeId);
+      final page = await widget.session.api
+          .feed(beforeId: _nextBeforeId, following: _following);
       if (!mounted || generation != _generation) return;
       setState(() {
         _posts.addAll(page.posts);
@@ -99,6 +109,11 @@ class _CommunityScreenState extends State<CommunityScreen> {
         if (updated != null) _replace(updated);
       case PostAction.comments:
         await _openPost(post);
+      case PostAction.save:
+        final updated = await _actions.save(context, post);
+        if (updated != null) _replace(updated);
+      case PostAction.openAuthor:
+        await _openProfile(post.author.id);
       case PostAction.openPattern:
         await openSharedPattern(context, widget.store, post.pattern!);
       case PostAction.report:
@@ -125,6 +140,15 @@ class _CommunityScreenState extends State<CommunityScreen> {
     }
   }
 
+  Future<void> _openProfile(int userId) async {
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => ProfileScreen(
+          userId: userId, session: widget.session, store: widget.store),
+    ));
+    // Pe profil se poate urmări, debloca sau edita: reîncărcăm lista.
+    if (mounted) _refresh();
+  }
+
   Future<void> _newPost() async {
     if (!await _actions.ensureLoggedIn(context) || !mounted) return;
     final created = await Navigator.of(context).push<Post>(MaterialPageRoute(
@@ -137,45 +161,53 @@ class _CommunityScreenState extends State<CommunityScreen> {
     final session = widget.session;
     return ListenableBuilder(
       listenable: session,
-      builder: (context, _) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Comunitate'),
-          actions: [
-            if (session.user?.isAdmin ?? false)
-              IconButton(
-                tooltip: 'Postări raportate',
-                icon: const Icon(Icons.shield_outlined),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => AdminScreen(session: session))),
-              ),
-            if (session.loggedIn)
-              PopupMenuButton<String>(
-                tooltip: 'Contul meu',
-                icon: const Icon(Icons.account_circle_outlined),
-                onSelected: (_) => session.logout(),
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                      enabled: false,
-                      child: Text('Conectată: ${session.user!.displayName}')),
-                  const PopupMenuItem(
-                      value: 'logout', child: Text('Deconectează-te')),
-                ],
-              )
-            else
-              TextButton(
-                style: TextButton.styleFrom(foregroundColor: Colors.white),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => LoginScreen(session: session))),
-                child: const Text('Conectare'),
-              ),
-          ],
+      builder: (context, _) => DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('Comunitate'),
+            bottom: TabBar(
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.white,
+              onTap: (i) {
+                if ((i == 1) == _following) return;
+                setState(() => _following = i == 1);
+                _refresh();
+              },
+              tabs: const [Tab(text: 'Toate'), Tab(text: 'Urmăresc')],
+            ),
+            actions: [
+              if (session.user?.isAdmin ?? false)
+                IconButton(
+                  tooltip: 'Postări raportate',
+                  icon: const Icon(Icons.shield_outlined),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => AdminScreen(session: session))),
+                ),
+              if (session.loggedIn)
+                IconButton(
+                  tooltip: 'Profilul meu',
+                  onPressed: () => _openProfile(session.user!.id),
+                  icon: UserAvatar(
+                      user: session.user!, api: session.api, radius: 15),
+                )
+              else
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => LoginScreen(session: session))),
+                  child: const Text('Conectare'),
+                ),
+            ],
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _newPost,
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('Postează'),
+          ),
+          body: RefreshIndicator(onRefresh: _refresh, child: _body()),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _newPost,
-          icon: const Icon(Icons.edit_outlined),
-          label: const Text('Postează'),
-        ),
-        body: RefreshIndicator(onRefresh: _refresh, child: _body()),
       ),
     );
   }
@@ -191,6 +223,22 @@ class _CommunityScreenState extends State<CommunityScreen> {
           text: _error!,
           action: FilledButton(
               onPressed: _refresh, child: const Text('Încearcă din nou')),
+        );
+      } else if (_following && !widget.session.loggedIn) {
+        content = _Message(
+          icon: Icons.people_outline,
+          text:
+              'Conectează-te ca să vezi postările persoanelor pe care le urmărești.',
+          action: FilledButton(
+            onPressed: () => _actions.ensureLoggedIn(context),
+            child: const Text('Conectare'),
+          ),
+        );
+      } else if (_following) {
+        content = const _Message(
+          icon: Icons.people_outline,
+          text: 'Nicio postare încă. Apasă pe numele cuiva ca să-i vezi '
+              'profilul și s-o urmărești.',
         );
       } else {
         content = const _Message(

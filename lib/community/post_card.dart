@@ -4,11 +4,21 @@ import 'package:url_launcher/url_launcher.dart';
 import '../garments/catalog.dart';
 import '../theme.dart';
 import 'api.dart';
+import 'avatar.dart';
 import 'community.dart';
 import 'models.dart';
 
 /// Ce se poate face dintr-o postare; ecranul care o afișează decide efectul.
-enum PostAction { like, comments, openPattern, report, block, delete }
+enum PostAction {
+  like,
+  comments,
+  save,
+  openAuthor,
+  openPattern,
+  report,
+  block,
+  delete
+}
 
 /// O postare: autoarea, textul, poza, link-ul, tiparul și butoanele.
 class PostCard extends StatelessWidget {
@@ -30,7 +40,6 @@ class PostCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final accent = Accent.of(post.author.id);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       clipBehavior: Clip.antiAlias,
@@ -38,12 +47,8 @@ class PostCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
-            leading: CircleAvatar(
-              backgroundColor: accent.strong,
-              foregroundColor: Colors.white,
-              child:
-                  Text(post.author.displayName.characters.first.toUpperCase()),
-            ),
+            onTap: () => onAction(PostAction.openAuthor),
+            leading: UserAvatar(user: post.author, api: api),
             title: Text(post.author.displayName,
                 style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text(post.hidden
@@ -96,6 +101,14 @@ class PostCard extends StatelessWidget {
                   onPressed: () => onAction(PostAction.comments),
                   icon: const Icon(Icons.chat_bubble_outline),
                   label: Text('${post.commentCount}'),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: post.savedByMe ? 'Salvată' : 'Salvează în colecție',
+                  onPressed: () => onAction(PostAction.save),
+                  icon: Icon(
+                      post.savedByMe ? Icons.bookmark : Icons.bookmark_border,
+                      color: post.savedByMe ? PatronetteColors.rose : null),
                 ),
               ],
             ),

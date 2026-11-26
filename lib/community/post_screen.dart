@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../data/profile_store.dart';
+import 'avatar.dart';
 import 'community.dart';
+import 'profile_screen.dart';
 import 'models.dart';
 import 'post_actions.dart';
 import 'post_card.dart';
@@ -93,6 +95,13 @@ class _PostScreenState extends State<PostScreen> {
     }
   }
 
+  Future<void> _openProfile(int userId) => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ProfileScreen(
+              userId: userId, session: widget.session, store: widget.store),
+        ),
+      );
+
   Future<void> _onAction(PostAction action) async {
     final nav = Navigator.of(context);
     switch (action) {
@@ -101,6 +110,11 @@ class _PostScreenState extends State<PostScreen> {
         if (updated != null) setState(() => _post = updated);
       case PostAction.comments:
         break;
+      case PostAction.save:
+        final updated = await _actions.save(context, _post);
+        if (updated != null) setState(() => _post = updated);
+      case PostAction.openAuthor:
+        await _openProfile(_post.author.id);
       case PostAction.openPattern:
         await openSharedPattern(context, widget.store, _post.pattern!);
       case PostAction.report:
@@ -159,6 +173,13 @@ class _PostScreenState extends State<PostScreen> {
                   else
                     for (final c in _comments!)
                       ListTile(
+                        leading: GestureDetector(
+                          onTap: () => _openProfile(c.author.id),
+                          child: UserAvatar(
+                              user: c.author,
+                              api: widget.session.api,
+                              radius: 16),
+                        ),
                         title: Text(c.author.displayName,
                             style:
                                 const TextStyle(fontWeight: FontWeight.w600)),

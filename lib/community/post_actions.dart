@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'api.dart';
 import 'login_screen.dart';
 import 'models.dart';
+import 'save_sheet.dart';
 import 'session.dart';
 
 /// Acțiunile pe o postare, folosite și în listă, și în pagina postării.
@@ -23,6 +24,15 @@ class PostActions {
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => LoginScreen(session: session)));
     return session.loggedIn;
+  }
+
+  /// Salvează postarea în colecții. Întoarce postarea actualizată, sau null
+  /// dacă nu s-a schimbat nimic.
+  Future<Post?> save(BuildContext context, Post post) async {
+    if (!await ensureLoggedIn(context) || !context.mounted) return null;
+    final saved = await showSaveSheet(context, session, post);
+    if (saved == null || saved == post.savedByMe) return null;
+    return post.copyWith(savedByMe: saved);
   }
 
   /// Apreciază sau retrage aprecierea. Întoarce postarea actualizată, sau
