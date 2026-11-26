@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..config import get_settings
 from ..images import prepare_image
-from ..models import Block, Comment, Like, Post, User
+from ..models import Block, Collection, CollectionItem, Comment, Follow, Like, Post, User
 from ..schemas import (
     AuthorOut,
     CommentIn,
@@ -27,6 +27,16 @@ _GARMENT_ID = re.compile(r"^[a-z][a-z0-9-]{0,39}$")
 
 
 # ---------------------------------------------------------------- ajutoare
+
+
+def author_out(user: User) -> AuthorOut:
+    return AuthorOut(
+        id=user.id,
+        display_name=user.display_name,
+        avatar_url=(
+            f"/users/{user.id}/avatar?v={user.avatar_version}" if user.avatar_version else None
+        ),
+    )
 
 
 def _blocked_ids(db: DB, user: User | None) -> list[int]:
@@ -67,14 +77,22 @@ def posts_out(db: DB, posts: list[Post], user: User | None) -> list[PostOut]:
         ).all()
     )
     mine: set[int] = set()
+    saved: set[int] = set()
     if user is not None:
         mine = set(
             db.scalars(select(Like.post_id).where(Like.post_id.in_(ids), Like.user_id == user.id))
         )
+        saved = set(
+            db.scalars(
+                select(CollectionItem.post_id)
+                .join(Collection, Collection.id == CollectionItem.collection_id)
+                .where(CollectionItem.post_id.in_(ids), Collection.owner_id == user.id)
+            )
+        )
     return [
         PostOut(
             id=p.id,
-            author=AuthorOut(id=p.author.id, display_name=p.author.display_name),
+            author=author_out(p.author),
             text=p.text,
             link_url=p.link_url,
             image_url=f"/posts/{p.id}/image" if p.has_image else None,
@@ -86,6 +104,7 @@ def posts_out(db: DB, posts: list[Post], user: User | None) -> list[PostOut]:
             like_count=likes.get(p.id, 0),
             comment_count=comments.get(p.id, 0),
             liked_by_me=p.id in mine,
+            saved_by_me=p.id in saved,
             can_delete=user is not None and (user.id == p.author_id or user.is_admin),
             hidden=p.hidden,
             created_at=p.created_at,
@@ -139,10 +158,17 @@ def feed(
     user: OptionalUser,
     before_id: Annotated[int | None, Query(gt=0)] = None,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    following: Annotated[bool, Query(description="Doar persoanele pe care le urmăresc")] = False,
 ) -> PostPage:
     """Cele mai noi postări, câte o pagină. Fără cele ascunse și fără cele ale
     persoanelor blocate."""
     q = select(Post).where(Post.hidden.is_(False))
+    if following:
+        if user is None:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Conectează-te ca să continui.")
+        q = q.where(
+            Post.author_id.in_(select(Follow.followed_id).where(Follow.follower_id == user.id))
+        )
     blocked = _blocked_ids(db, user)
     if blocked:
         q = q.where(Post.author_id.not_in(blocked))
@@ -240,7 +266,7 @@ def unlike(post_id: int, db: DB, user: CurrentUser) -> None:
 def _comment_out(c: Comment, user: User | None) -> CommentOut:
     return CommentOut(
         id=c.id,
-        author=AuthorOut(id=c.author.id, display_name=c.author.display_name),
+        author=author_out(c.author),
         text=c.text,
         created_at=c.created_at,
         can_delete=user is not None and (user.id == c.author_id or user.is_admin),

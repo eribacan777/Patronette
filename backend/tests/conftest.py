@@ -18,16 +18,26 @@ os.environ["REPORTS_TO_HIDE"] = "3"
 from fastapi.testclient import TestClient  # noqa: E402
 from PIL import Image  # noqa: E402
 
+from sqlalchemy import text  # noqa: E402
+
 from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.migrate import run_migrations  # noqa: E402
 
 assert "patronette_test" in str(engine.url), "testele trebuie să ruleze pe baza de test"
 
 
+def drop_everything():
+    Base.metadata.drop_all(engine)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+
+
 @pytest.fixture(autouse=True)
 def clean_db():
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    # Baza de test se construiește prin migrări, exact ca în cloud.
+    drop_everything()
+    run_migrations()
     yield
 
 

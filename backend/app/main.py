@@ -11,14 +11,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from .config import get_settings
-from .db import Base, SessionLocal, engine
-from .routers import auth, moderation, posts
+from .db import SessionLocal
+from .migrate import run_migrations
+from .routers import auth, collections, moderation, posts, users
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Creează tabelele care lipsesc. (La scară mare: migrări cu Alembic.)
-    Base.metadata.create_all(engine)
+    # Aduce baza de date la ultima versiune (migrările din migrations/).
+    run_migrations()
     yield
 
 
@@ -38,6 +39,8 @@ app.include_router(auth.router)
 app.include_router(posts.router)
 app.include_router(posts.comments_router)
 app.include_router(moderation.router)
+app.include_router(users.router)
+app.include_router(collections.router)
 
 
 @app.get("/health", tags=["sistem"])

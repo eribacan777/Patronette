@@ -43,29 +43,40 @@ raportarea, blocarea și panoul administratoarelor.
 
 | Fișier | Ce face |
 |---|---|
-| `app/main.py` | Pornește aplicația, leagă rutele, creează tabelele |
+| `app/main.py` | Pornește aplicația, leagă rutele, aplică migrările |
+| `app/migrate.py`, `migrations/` | Migrările bazei de date (Alembic) |
 | `app/config.py` | Setările din `.env` / variabile de mediu |
 | `app/db.py` | Conexiunea la PostgreSQL (SQLAlchemy) |
 | `app/models.py` | Tabelele: users, posts, comments, likes, reports, blocks |
 | `app/schemas.py` | Forma datelor din API (Pydantic) |
 | `app/security.py` | Parole Argon2, tokenuri JWT, utilizatorul curent |
 | `app/images.py` | Poze: verificare, micșorare la 1280 px, fără EXIF |
-| `app/routers/` | Rutele: `auth`, `posts`, `moderation` |
+| `app/routers/` | Rutele: `auth`, `posts`, `moderation`, `users` (profiluri, urmărire), `collections` |
 
 ## Baza de date
 
 | Tabel | Conține |
 |---|---|
-| `users` | e-mail, parolă criptată sau cont Google, nume afișat, administratoare |
+| `users` | e-mail, parolă criptată sau cont Google, nume, descriere, poză de profil |
 | `posts` | text, link, poză (JPEG micșorat), tipar (model + setări), ascunsă |
 | `comments` | textul comentariului, autoarea, postarea |
 | `likes` | cine a apreciat ce (cheie dublă: postare + utilizator) |
 | `reports` | raportările; 3 raportări ascund automat postarea |
 | `blocks` | cine pe cine a blocat |
+| `follows` | cine pe cine urmărește |
+| `collections` | colecțiile de postări salvate, publice sau private |
+| `collection_items` | ce postare e în ce colecție |
 
 Măsurile corpului **nu** ajung pe server: rămân pe telefon. Un tipar
 distribuit conține doar modelul și setările, iar cine îl deschide îl vede pe
 măsurile ei.
+
+## Migrări
+
+Structura bazei se schimbă doar prin fișiere în `migrations/versions/`. Serverul
+le aplică singur la pornire; baza din Neon, creată înainte de migrări, e
+recunoscută și adusă la zi fără să piardă date. Un test verifică la fiecare
+rulare că migrările dau exact tabelele din `app/models.py`.
 
 ## Securitate
 

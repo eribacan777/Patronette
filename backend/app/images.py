@@ -38,3 +38,18 @@ def prepare_image(raw: bytes, max_mb: int) -> bytes:
     out = io.BytesIO()
     img.convert("RGB").save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)
     return out.getvalue()
+
+
+AVATAR_SIDE = 512  # px
+
+
+def prepare_avatar(raw: bytes, max_mb: int) -> bytes:
+    """Poza de profil: decupată pătrat din centru și micșorată la 512 px."""
+    img = Image.open(io.BytesIO(prepare_image(raw, max_mb)))
+    side = min(img.size)
+    left, top = (img.width - side) // 2, (img.height - side) // 2
+    img = img.crop((left, top, left + side, top + side))
+    img.thumbnail((AVATAR_SIDE, AVATAR_SIDE))
+    out = io.BytesIO()
+    img.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)
+    return out.getvalue()
