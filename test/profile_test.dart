@@ -178,11 +178,6 @@ void main() {
           LoginScreen(session: Session(CommunityApi(baseUrl: 'http://server'))),
     ));
     expect(find.text('Continuă cu Google'), findsOneWidget);
-
-    // Fără clientul OAuth configurat, mesajul e clar, nu o eroare tehnică.
-    await tester.tap(find.text('Continuă cu Google'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('nu e activată încă'), findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 
   test('profilul și colecțiile se citesc corect din răspunsul serverului',

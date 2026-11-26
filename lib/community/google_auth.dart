@@ -14,7 +14,8 @@ const googleWebClientId = String.fromEnvironment(
 );
 
 /// Completat după crearea clientului în Google Cloud Console.
-const _configuredWebClientId = '';
+const _configuredWebClientId =
+    '395548626613-o7q110b37mvm4somdl14ac6ircdgghjc.apps.googleusercontent.com';
 
 /// Butonul „Continuă cu Google” apare pe Android și iOS. Pe web, Google
 /// cere butonul lui propriu, desenat de biblioteca lui.
