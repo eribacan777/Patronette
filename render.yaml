@@ -24,3 +24,7 @@ services:
         generateValue: true # Render generează o cheie lungă, aleatorie
       - key: CORS_ORIGINS
         value: "*"
+      # Clientul OAuth „Web application” din Google Cloud (proiectul
+      # Patronette). Nu e secret: e ID-ul cu care Google semnează tokenurile.
+      - key: GOOGLE_CLIENT_IDS
+        value: 395548626613-o7q110b37mvm4somdl14ac6ircdgghjc.apps.googleusercontent.com
